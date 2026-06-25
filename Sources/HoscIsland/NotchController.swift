@@ -148,10 +148,12 @@ final class NotchController {
         let W = NotchMetrics.expandedWidth
         let H = NotchMetrics.windowHeight
         let full = state.isExpanded || state.screenshot != nil || state.notification != nil
-        // Collapsed is always fully click/drag-through so nothing under the notch
-        // is blocked. Hover-open uses the mouse-location poll; click-open uses a
-        // non-consuming global mouse monitor; swipe uses a global scroll monitor.
         hostingView.interactiveRect = full ? CGRect(x: 0, y: 0, width: W, height: H) : .zero
+        // Collapsed → the whole window ignores mouse events, so NOTHING under the
+        // notch is blocked (guaranteed passthrough). Open mechanisms don't need the
+        // window to receive events: hover uses the mouse-location poll, click/swipe
+        // use non-consuming global monitors.
+        panel?.ignoresMouseEvents = !full
     }
 
     // MARK: - Screenshot preview
