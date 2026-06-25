@@ -148,19 +148,10 @@ final class NotchController {
         let W = NotchMetrics.expandedWidth
         let H = NotchMetrics.windowHeight
         let full = state.isExpanded || state.screenshot != nil || state.notification != nil
-        if full {
-            hostingView.interactiveRect = CGRect(x: 0, y: 0, width: W, height: H)
-        } else if Settings.shared.interactionMode == .click {
-            // Click-to-open: only the central notch (over the camera, nothing
-            // clickable underneath) catches the click; everything else passes through.
-            let w = notchWidth
-            let h = min(NotchMetrics.collapsedHeight, max(topInset - 2, 24))
-            hostingView.interactiveRect = CGRect(x: (W - w) / 2, y: H - h, width: w, height: h)
-        } else {
-            // Hover mode: fully click/drag-through (hover-open is driven by the
-            // mouse-location poll, not by capturing events).
-            hostingView.interactiveRect = .zero
-        }
+        // Collapsed is always fully click/drag-through so nothing under the notch
+        // is blocked. Hover-open uses the mouse-location poll; click-open uses a
+        // non-consuming global mouse monitor; swipe uses a global scroll monitor.
+        hostingView.interactiveRect = full ? CGRect(x: 0, y: 0, width: W, height: H) : .zero
     }
 
     // MARK: - Screenshot preview
@@ -296,6 +287,19 @@ final class NotchController {
         // consuming them; local monitor covers scrolls over our own window.
         NSEvent.addGlobalMonitorForEvents(matching: .scrollWheel) { handler($0) }
         NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { handler($0); return $0 }
+
+        // Click-to-open: a non-consuming monitor so the notch stays passthrough.
+        NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown) { [weak self] _ in self?.handleClick() }
+        NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] e in self?.handleClick(); return e }
+    }
+
+    private func handleClick() {
+        guard Settings.shared.interactionMode == .click,
+              !state.isExpanded, state.screenshot == nil,
+              let screen = targetScreen else { return }
+        if collapsedScreenRect(screen).contains(NSEvent.mouseLocation) {
+            state.isExpanded = true
+        }
     }
 
     private func handleScroll(_ event: NSEvent) {

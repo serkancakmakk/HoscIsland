@@ -263,9 +263,8 @@ struct NotchView: View {
             // Expand into a drop zone while a drag hovers the notch.
             if targeted { isExpanded = true }
         }
-        // Click-to-open: tapping the notch expands it (collapsed area is only
-        // hit-testable in click mode).
-        .onTapGesture { if !isExpanded { isExpanded = true } }
+        // Click-to-open is handled at the AppKit layer (mouseDown) for reliability
+        // in the non-activating panel.
     }
 
     /// In click mode, the collapsed pill grows a touch on hover as an affordance.
