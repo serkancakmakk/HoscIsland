@@ -7,9 +7,18 @@ enum NotchMetrics {
     static let expandedHeight: CGFloat = 250        // music-only expanded
     static let shelfRowHeight: CGFloat = 70
     static let expandedWidth: CGFloat = 420
-    /// Fixed panel height — large enough for the tallest layout (expanded + shelf).
+    /// Fixed panel height — large enough for the tallest layout (music + shelf).
     static var windowHeight: CGFloat { expandedHeight + shelfRowHeight }
     static let cornerRadius: CGFloat = 14
+
+    /// Actual visible height of the expanded island for the given content — used
+    /// for both the view frame and the hover zone so they always match (otherwise
+    /// the island stays "stuck" open over invisible window area).
+    static func expandedVisibleHeight(topInset: CGFloat, hasMusic: Bool, hasShelf: Bool) -> CGFloat {
+        if hasMusic { return expandedHeight + (hasShelf ? shelfRowHeight : 0) }
+        if hasShelf { return topInset + shelfRowHeight + 18 }
+        return topInset + 96  // idle expanded
+    }
 
     /// Extra width added to each side of the notch when music is playing, so the
     /// collapsed pill can show album art (left) and an equalizer (right). Wide
@@ -289,7 +298,9 @@ struct NotchView: View {
     }
 
     private var currentHeight: CGFloat {
-        if isExpanded { return NotchMetrics.expandedHeight + (hasShelf ? NotchMetrics.shelfRowHeight : 0) }
+        if isExpanded {
+            return NotchMetrics.expandedVisibleHeight(topInset: topInset, hasMusic: hasMusic, hasShelf: hasShelf)
+        }
         if showScreenshot { return screenshotHeight }
         if showBanner { return bannerHeight }
         return NotchMetrics.collapsedHeight

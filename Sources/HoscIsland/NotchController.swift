@@ -281,6 +281,7 @@ final class NotchController {
 
         if zone.contains(mouse) {
             collapseWorkItem?.cancel()
+            collapseWorkItem = nil   // reset so a later exit can schedule again
             if !state.isExpanded { state.isExpanded = true }
         } else if state.isExpanded, collapseWorkItem == nil {
             // Small delay so flicking past an edge doesn't collapse instantly.
@@ -305,7 +306,13 @@ final class NotchController {
     private func expandedScreenRect(_ screen: NSScreen) -> NSRect {
         let f = screen.frame
         let w = NotchMetrics.expandedWidth
-        let h = NotchMetrics.windowHeight
+        // Match the actually-visible island height so the hover zone doesn't
+        // extend into the invisible part of the (taller) window — otherwise the
+        // island stays stuck open while the cursor sits over empty window area.
+        let hasMusicNow = Settings.shared.showMusic && nowPlaying.track != nil
+        let h = NotchMetrics.expandedVisibleHeight(
+            topInset: topInset, hasMusic: hasMusicNow, hasShelf: !shelf.items.isEmpty
+        )
         return NSRect(x: f.midX - w / 2, y: f.maxY - h, width: w, height: h)
     }
 
