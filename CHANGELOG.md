@@ -2,6 +2,15 @@
 
 Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Boring Notch tarzı).
 
+## [1.12.0] — 2026-06-25
+### Eklendi
+- **Swipe ile şarkı geçişi**: Ada üzerinde yatay kaydırma — sola → sonraki,
+  sağa → önceki parça (hem kompakt hem açık görünümde).
+### Düzeltildi
+- **Sınırda alttaki sekmelere tıklanamıyordu**: Kapalı drop bölgesi menü çubuğu
+  yüksekliğini aşıp pencere/sekme alanına taşıyordu; artık menü-çubuğu şeridi
+  içinde tutuluyor → altındaki sekmeler tıklanabilir.
+
 ## [1.11.0] — 2026-06-25
 ### Eklendi
 - **Dosya rafı (shelf)** 📁: Notch'a dosya sürükle-bırak → rafa eklenir; açık adada

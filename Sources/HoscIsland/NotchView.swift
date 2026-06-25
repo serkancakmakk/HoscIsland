@@ -409,6 +409,8 @@ struct NotchView: View {
             }
             .padding(.horizontal, 12)
             .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+            .gesture(trackSwipe)
         } else if alwaysBattery {
             batteryPill(percentage: state.batteryPercentage, charging: state.batteryPlugged)
         } else if hasShelf {
@@ -553,6 +555,19 @@ struct NotchView: View {
             Spacer(minLength: 10)
             VolumeBar(volume: nowPlaying.volume) { nowPlaying.setVolume($0) }
         }
+        .contentShape(Rectangle())
+        .gesture(trackSwipe)
+    }
+
+    /// Horizontal swipe to change track: left → next, right → previous.
+    private var trackSwipe: some Gesture {
+        DragGesture(minimumDistance: 24)
+            .onEnded { value in
+                guard abs(value.translation.width) > 44,
+                      abs(value.translation.width) > abs(value.translation.height) else { return }
+                if value.translation.width < 0 { nowPlaying.next() }
+                else { nowPlaying.previous() }
+            }
     }
 
     // MARK: - Shelf

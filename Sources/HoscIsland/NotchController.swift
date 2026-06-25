@@ -144,9 +144,10 @@ final class NotchController {
         if full {
             hostingView.interactiveRect = CGRect(x: 0, y: 0, width: W, height: H)
         } else {
-            // Central notch drop zone (slightly taller for easier targeting).
+            // Central notch drop zone — kept within the menu-bar/notch strip so it
+            // never overlaps (and blocks clicks to) the window/tabs just below it.
             let w = notchWidth
-            let h = NotchMetrics.collapsedHeight + 14
+            let h = min(NotchMetrics.collapsedHeight, max(topInset - 2, 24))
             hostingView.interactiveRect = CGRect(x: (W - w) / 2, y: H - h, width: w, height: h)
         }
     }
