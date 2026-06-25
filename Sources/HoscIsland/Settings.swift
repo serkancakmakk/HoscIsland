@@ -1,6 +1,19 @@
 import AppKit
 import Combine
 
+/// How the island opens.
+enum InteractionMode: String, CaseIterable {
+    case hover   // expands when the cursor is over the notch
+    case click   // expands only when clicked (hover just nudges)
+
+    var label: String {
+        switch self {
+        case .hover: return "Hover"
+        case .click: return "Tıkla"
+        }
+    }
+}
+
 /// How the battery indicator behaves.
 enum BatteryMode: String, CaseIterable {
     case off        // never show
@@ -26,6 +39,12 @@ final class Settings: ObservableObject {
     private let notifKey = "showNotifications"
     private let musicKey = "showMusic"
     private let batteryKey = "batteryMode"
+    private let interactionKey = "interactionMode"
+
+    /// Whether the island opens on hover or on click.
+    @Published var interactionMode: InteractionMode {
+        didSet { defaults.set(interactionMode.rawValue, forKey: interactionKey) }
+    }
 
     /// Whether to show the WhatsApp unread-message count badge in the notch.
     @Published var showUnreadCount: Bool {
@@ -69,6 +88,7 @@ final class Settings: ObservableObject {
         showNotifications = (defaults.object(forKey: notifKey) as? Bool) ?? true
         showMusic = (defaults.object(forKey: musicKey) as? Bool) ?? true
         batteryMode = BatteryMode(rawValue: defaults.string(forKey: batteryKey) ?? "") ?? .onChange
+        interactionMode = InteractionMode(rawValue: defaults.string(forKey: interactionKey) ?? "") ?? .hover
     }
 
     /// All currently connected screens, paired with their display IDs.

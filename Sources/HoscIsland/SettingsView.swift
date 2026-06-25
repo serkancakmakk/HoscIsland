@@ -60,6 +60,26 @@ struct SettingsView: View {
                 Text("Özellikler")
                     .font(.system(size: 13, weight: .semibold))
 
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Açılma şekli")
+                            .font(.system(size: 12, weight: .medium))
+                        Text("Üzerine gelince mi tıklayınca mı açılsın")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Picker("", selection: $settings.interactionMode) {
+                        ForEach(InteractionMode.allCases, id: \.self) { mode in
+                            Text(mode.label).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .frame(width: 130)
+                    .controlSize(.small)
+                }
+
                 featureToggle("Müzik göstergesi", "Çalan parça + kontroller", isOn: $settings.showMusic)
                 featureToggle("WhatsApp banner", "Gelen mesajı gönderen + metniyle göster", isOn: $settings.showNotifications)
                 featureToggle("Okunmamış rozeti", "WhatsApp okunmamış sayısı", isOn: $settings.showUnreadCount)
@@ -88,7 +108,7 @@ struct SettingsView: View {
             Spacer(minLength: 0)
         }
         .padding(20)
-        .frame(width: 400, height: 560)
+        .frame(width: 400, height: 610)
         .onReceive(NotificationCenter.default.publisher(
             for: NSApplication.didChangeScreenParametersNotification)) { _ in
             screens = Settings.availableScreens()

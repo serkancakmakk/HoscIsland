@@ -2,14 +2,23 @@
 
 Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Boring Notch tarzı).
 
+## [1.13.0] — 2026-06-25
+### Eklendi
+- **Açılma şekli ayarı**: Ayarlar → *Açılma şekli* = **Hover / Tıkla**.
+  - **Tıkla** modunda hover ile açılmaz (menüleri kapatmaz); üzerine gelince
+    **hafifçe büyür** (ipucu), **tıklayınca** açılır.
+- **Swipe ile şarkı geçişi** (scroll tabanlı): Notch üzerinde iki parmak yatay
+  kaydırma → sonraki/önceki parça. Global, **olay yutmayan** monitör.
+### Düzeltildi
+- **Notch altındaki alana tıklanamıyor/sürüklenemiyordu**: Kapalıyken ada artık
+  **tamamen geçirgen** (hover modunda); altındaki sekmeler/pencereler serbest.
+  Dosya bırakma, sürüklemeyi notch'a getirince hover-açılmayla çalışıyor.
+
 ## [1.12.0] — 2026-06-25
 ### Eklendi
-- **Swipe ile şarkı geçişi**: Ada üzerinde yatay kaydırma — sola → sonraki,
-  sağa → önceki parça (hem kompakt hem açık görünümde).
+- **Swipe ile şarkı geçişi** (ilk sürüm, sürükle tabanlı).
 ### Düzeltildi
-- **Sınırda alttaki sekmelere tıklanamıyordu**: Kapalı drop bölgesi menü çubuğu
-  yüksekliğini aşıp pencere/sekme alanına taşıyordu; artık menü-çubuğu şeridi
-  içinde tutuluyor → altındaki sekmeler tıklanabilir.
+- Sınırda sekme tıklama (ilk deneme).
 
 ## [1.11.0] — 2026-06-25
 ### Eklendi

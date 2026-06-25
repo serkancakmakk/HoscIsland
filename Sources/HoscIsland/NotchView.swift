@@ -255,6 +255,7 @@ struct NotchView: View {
         .animation(.spring(response: 0.45, dampingFraction: 0.82), value: state.batteryFlash)
         .animation(.spring(response: 0.48, dampingFraction: 0.84), value: state.screenshot)
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: dropTargeted)
+        .animation(.spring(response: 0.35, dampingFraction: 0.7), value: state.hovering)
         .onDrop(of: [UTType.fileURL], isTargeted: $dropTargeted) { providers in
             handleDrop(providers)
         }
@@ -262,6 +263,14 @@ struct NotchView: View {
             // Expand into a drop zone while a drag hovers the notch.
             if targeted { isExpanded = true }
         }
+        // Click-to-open: tapping the notch expands it (collapsed area is only
+        // hit-testable in click mode).
+        .onTapGesture { if !isExpanded { isExpanded = true } }
+    }
+
+    /// In click mode, the collapsed pill grows a touch on hover as an affordance.
+    private var nudge: Bool {
+        settings.interactionMode == .click && state.hovering && !isExpanded && !showScreenshot && !showBanner
     }
 
     private var hasMusic: Bool { settings.showMusic && nowPlaying.track != nil }
@@ -294,7 +303,7 @@ struct NotchView: View {
         if isExpanded { return NotchMetrics.expandedWidth }
         if showScreenshot { return NotchMetrics.screenshotWidth }
         if showBanner { return NotchMetrics.bannerWidth }
-        return NotchMetrics.collapsedWidth(notchWidth: notchWidth, hasMusic: isCompact)
+        return NotchMetrics.collapsedWidth(notchWidth: notchWidth, hasMusic: isCompact) + (nudge ? 10 : 0)
     }
 
     private var currentHeight: CGFloat {
@@ -303,7 +312,7 @@ struct NotchView: View {
         }
         if showScreenshot { return screenshotHeight }
         if showBanner { return bannerHeight }
-        return NotchMetrics.collapsedHeight
+        return NotchMetrics.collapsedHeight + (nudge ? 4 : 0)
     }
 
     // MARK: - Screenshot preview

@@ -36,6 +36,8 @@ final class NotchState: ObservableObject {
     @Published var batteryPercentage: Int = 100
     @Published var batteryPlugged: Bool = false
     @Published var screenshot: ScreenshotPreview?
+    /// Cursor is over the collapsed notch (used for the click-mode hover nudge).
+    @Published var hovering: Bool = false
     var whatsAppIcon: NSImage?
 }
 
@@ -105,6 +107,11 @@ final class NotchController {
         .sink { [weak self] in self?.updateInteractiveRect() }
         .store(in: &cancellables)
 
+        Settings.shared.$interactionMode
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.updateInteractiveRect() }
+            .store(in: &cancellables)
+
         // Move to the newly chosen screen when the user changes the setting.
         Settings.shared.$selectedDisplayID
             .receive(on: RunLoop.main)
@@ -143,12 +150,16 @@ final class NotchController {
         let full = state.isExpanded || state.screenshot != nil || state.notification != nil
         if full {
             hostingView.interactiveRect = CGRect(x: 0, y: 0, width: W, height: H)
-        } else {
-            // Central notch drop zone — kept within the menu-bar/notch strip so it
-            // never overlaps (and blocks clicks to) the window/tabs just below it.
+        } else if Settings.shared.interactionMode == .click {
+            // Click-to-open: only the central notch (over the camera, nothing
+            // clickable underneath) catches the click; everything else passes through.
             let w = notchWidth
             let h = min(NotchMetrics.collapsedHeight, max(topInset - 2, 24))
             hostingView.interactiveRect = CGRect(x: (W - w) / 2, y: H - h, width: w, height: h)
+        } else {
+            // Hover mode: fully click/drag-through (hover-open is driven by the
+            // mouse-location poll, not by capturing events).
+            hostingView.interactiveRect = .zero
         }
     }
 
@@ -271,21 +282,57 @@ final class NotchController {
         hoverTimer = Timer.scheduledTimer(withTimeInterval: 0.07, repeats: true) { [weak self] _ in
             self?.checkHover()
         }
+        startSwipeMonitor()
+    }
+
+    // MARK: - Swipe-to-change-track (non-consuming scroll monitor)
+
+    private var swipeAccum: CGFloat = 0
+    private var swipeArmed = true
+
+    private func startSwipeMonitor() {
+        let handler: (NSEvent) -> Void = { [weak self] event in self?.handleScroll(event) }
+        // Global monitor sees scrolls headed to other apps (over the notch) without
+        // consuming them; local monitor covers scrolls over our own window.
+        NSEvent.addGlobalMonitorForEvents(matching: .scrollWheel) { handler($0) }
+        NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { handler($0); return $0 }
+    }
+
+    private func handleScroll(_ event: NSEvent) {
+        guard nowPlaying.track != nil, let screen = targetScreen else { return }
+        let zone = state.isExpanded ? expandedScreenRect(screen) : collapsedScreenRect(screen)
+        guard zone.contains(NSEvent.mouseLocation) else { swipeAccum = 0; swipeArmed = true; return }
+
+        if event.phase == .began { swipeAccum = 0; swipeArmed = true }
+        // Only horizontal swipes.
+        if abs(event.scrollingDeltaX) > abs(event.scrollingDeltaY) {
+            swipeAccum += event.scrollingDeltaX
+        }
+        if swipeArmed, abs(swipeAccum) > 50 {
+            swipeArmed = false
+            if swipeAccum > 0 { nowPlaying.previous() } else { nowPlaying.next() }
+        }
+        if event.phase == .ended || event.phase == .cancelled { swipeAccum = 0; swipeArmed = true }
     }
 
     private func checkHover() {
         guard let screen = targetScreen else { return }
-        // While a screenshot preview is up it owns the notch; don't hover-expand.
         if state.screenshot != nil { return }
         let mouse = NSEvent.mouseLocation
         let zone = state.isExpanded ? expandedScreenRect(screen) : collapsedScreenRect(screen)
+        let inside = zone.contains(mouse)
+        let clickMode = Settings.shared.interactionMode == .click
 
-        if zone.contains(mouse) {
+        // Track hover for the click-mode "nudge".
+        let hovering = inside && !state.isExpanded
+        if state.hovering != hovering { state.hovering = hovering }
+
+        if inside {
             collapseWorkItem?.cancel()
-            collapseWorkItem = nil   // reset so a later exit can schedule again
-            if !state.isExpanded { state.isExpanded = true }
+            collapseWorkItem = nil
+            // Hover-open only in hover mode; in click mode the tap handles opening.
+            if !state.isExpanded, !clickMode { state.isExpanded = true }
         } else if state.isExpanded, collapseWorkItem == nil {
-            // Small delay so flicking past an edge doesn't collapse instantly.
             let work = DispatchWorkItem { [weak self] in
                 self?.state.isExpanded = false
                 self?.collapseWorkItem = nil
