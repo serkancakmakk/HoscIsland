@@ -2,6 +2,73 @@
 
 Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Boring Notch tarzı).
 
+## [1.21.0] — 2026-06-26
+### Eklendi
+- **Pomodoro zamanlayıcı** ⏲️ (her iki platform): Boştaki (müzik yokken)
+  genişletilmiş kartta 25 dk geri sayım — başlat/duraklat + sıfırla. macOS'ta
+  idle kart, LinuxIsland'da ada içinde widget satırı.
+
+## [1.20.0] — 2026-06-26
+### Eklendi
+- **Açılışta otomatik başlat** 🚀 (her iki platform): Ayarlardan açılınca oturum
+  açılışında otomatik başlar. macOS'ta `SMAppService` (Login Item), LinuxIsland'da
+  `~/.config/autostart/linux-island.desktop` XDG autostart girişi.
+
+## [1.19.0] — 2026-06-26
+### Eklendi
+- **Düşük pil uyarısı** ⚠️ (her iki platform): Pil şarjda değilken **%20'nin
+  altına ilk inişte** bir kez uyarır. macOS'ta kırmızı pil flash'ı, LinuxIsland'da
+  "🔋 Düşük pil — %X" banner'ı (5 sn). Pil göstergesi *Kapalı* iken susar.
+
+## [1.18.0] — 2026-06-26
+### Teknik
+- **LinuxIsland tam parite (özellik bazında)**: kalan macOS özellikleri de
+  Linux'a eklendi —
+  - **Medya tamamlama**: ilerleme çubuğu + **seek** (`SetPosition`), **shuffle/
+    repeat** (aktifken yeşil), **kapağa tıkla → uygulamayı öne getir** (`Raise`).
+  - **Dosya rafı**: sürükle-bırak ekle, chip + ✕ + "Temizle", **dışarı sürükle**,
+    `~/.config/linux-island/shelf`'e kalıcı.
+  - **Ayar penceresi (GUI)**: adaya **sağ tıkla** → toggle'lar + pil modu (TOML'a yazar).
+- Kalan (platform-sınırlı/minör): okunmamış rozeti, çoklu monitör seçimi,
+  equalizer animasyonu, collapsed input-passthrough — roadmap'te.
+
+## [1.17.0] — 2026-06-26
+### Teknik
+- **LinuxIsland ~parite**: macOS özelliklerinin çoğu Linux'a taşındı —
+  now-playing (MPRIS, kapak dâhil), **pil** (sysfs), **ses** (wpctl/PipeWire),
+  **ekran görüntüsü önizleme** (inotify + kopyala/aç/sil), **bildirim banner'ı**
+  (freedesktop D-Bus monitör), **ayarlar** (TOML), **tıkla/hover modu** ve
+  **taşınabilir ada** (layer-shell margin sürükleme).
+
+## [1.16.0] — 2026-06-26
+### Teknik
+- **CI/CD release hattı** (GitHub Actions): Her push'ta macOS `.app` + Linux
+  binary derlenir; commit mesajında **`[release]`** geçtiğinde ikisi de
+  **GitHub Releases**'a yüklenir (sürüm `CHANGELOG`'dan okunur).
+- **LinuxIsland M1 — MPRIS now-playing**: `zbus` ile çalan parça (başlık/sanatçı),
+  oynat/duraklat/önceki/sonraki ve swipe ile parça geçişi. macOS'tan farklı olarak
+  **tüm MPRIS uyumlu oynatıcıları** kapsar (sadece Music/Spotify değil).
+
+## [1.15.0] — 2026-06-26
+### Eklendi
+- **Taşınabilir ada** 🤚: Ayarlar → *Taşınabilir ada* açıkken, ada açıldığında
+  arka planından **sürükleyerek** istediğin yere taşıyabilirsin. Konum
+  `UserDefaults`'a kaydedilir (yeniden açılınca kalır); hover/tıklama bölgeleri
+  yeni konuma taşınır. **Sıfırla** ile ortaya geri döner. Ekran dışına taşmayı
+  önlemek için konum kırpılır.
+
+## [1.14.0] — 2026-06-26
+### Teknik
+- **Katmanlı `NotchController` refactor'u**: Şişen 405 satırlık controller dört
+  odaklı dosyaya ayrıldı (davranış birebir korundu):
+  - `NotchModels.swift` — paylaşılan durum + model türleri (`NotchState`,
+    `NotchNotification`, `BatteryFlash`, `ScreenshotPreview`, `PassthroughHostingView`).
+  - `NotchGeometry.swift` — ekran dikdörtgenleri + notch/top-inset tespiti.
+  - `NotchInteractionMonitor.swift` — hover poll'u, swipe ve click monitörleri,
+    collapse debounce'u (olay yutmayan, closure tabanlı arayüz).
+  - `NotchController.swift` — yalnızca orkestrasyon: panel, durum gözlemcileri ve
+    özellik monitörlerinin (now-playing/bildirim/pil/SS) bağlanması.
+
 ## [1.13.0] — 2026-06-25
 ### Eklendi
 - **Açılma şekli ayarı**: Ayarlar → *Açılma şekli* = **Hover / Tıkla**.
@@ -148,7 +215,7 @@ Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Borin
 
 ### 🔋 Pil & Güç
 - [x] 🔋 **Şarj göstergesi** — kablo takınca notch'ta pil + yüzde flash'ı. ✅ (1.8.0)
-- [ ] ⚠️ **Düşük pil uyarısı** — eşik altına düşünce kısa bir notch uyarısı.
+- [x] ⚠️ **Düşük pil uyarısı** — eşik altına (%20) düşünce kısa uyarı. ✅ (1.19.0)
 - [ ] 🎧 **Bağlı cihaz pilleri** — AirPods / Magic Mouse / klavye şarj durumu.
 
 ### 🖥️ Sistem HUD (yerine geçme)
@@ -170,8 +237,11 @@ Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Borin
       listeleme.
 
 ### 🧩 Widget'lar (boştayken)
+- [ ] 🗂️ **Açık sekmeler/pencereler göstergesi** — adada o an açık olan
+      sekmeleri/pencereleri listeleyip tıkla-geç (Mission Control benzeri hızlı
+      geçiş). _Planlandı; henüz eklenmedi._
 - [ ] 📅 **Takvim / sıradaki etkinlik** — boştaki notch'ta sonraki toplantı.
-- [ ] ⏲️ **Zamanlayıcı / Pomodoro** — notch'tan hızlı sayaç.
+- [x] ⏲️ **Zamanlayıcı / Pomodoro** — boştaki kartta 25 dk sayaç. ✅ (1.21.0)
 - [ ] 📋 **Pano geçmişi** — son kopyalananlara hızlı erişim.
 - [ ] 🌤️ **Hava durumu** — özetlenmiş günlük durum.
 
@@ -181,7 +251,7 @@ Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Borin
 - [ ] 👋 **Hover hassasiyeti** — açılma gecikmesi / kapanma süresi ayarı
       (`NotchController` hover zamanlayıcıları).
 - [ ] 🖱️ **Etkileşim modu** — hover yerine "tıkla-aç" seçeneği.
-- [ ] 🚀 **Açılışta otomatik başlat** — `SMAppService` (Login Item) + ayar anahtarı.
+- [x] 🚀 **Açılışta otomatik başlat** — `SMAppService` (Login Item) + ayar anahtarı. ✅ (1.20.0)
 
 ### 🛠️ Teknik & Dağıtım
 - [ ] 🌍 **İngilizce yerelleştirme** — TR/EN dil desteği.

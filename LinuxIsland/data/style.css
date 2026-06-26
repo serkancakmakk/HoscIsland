@@ -1,0 +1,95 @@
+/* Island appearance. The collapsed ↔ expanded change is just min-size +
+   radius, animated by GTK's CSS transitions. */
+
+/* Make the GTK window itself transparent so only the island shows. */
+.island-window {
+  background: transparent;
+}
+
+.island {
+  background: rgba(0, 0, 0, 0.92);
+  color: #ffffff;
+  padding: 4px 18px;
+  border-radius: 0 0 18px 18px;
+  min-width: 200px;
+  min-height: 28px;
+  transition: min-width 200ms ease,
+              min-height 200ms ease,
+              border-radius 200ms ease,
+              background-color 200ms ease;
+}
+
+.island.expanded {
+  min-width: 420px;
+  min-height: 180px;
+  border-radius: 0 0 28px 28px;
+  background: rgba(0, 0, 0, 0.96);
+}
+
+.title {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.subtitle {
+  opacity: 0.55;
+  font-size: 11px;
+}
+
+/* Transport row: hidden when collapsed, fades in when expanded. */
+.controls {
+  opacity: 0;
+  margin-top: 8px;
+  transition: opacity 180ms ease;
+}
+
+.island.expanded .controls {
+  opacity: 1;
+}
+
+.transport {
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: 18px;
+  color: #ffffff;
+}
+
+.cover {
+  border-radius: 8px;
+}
+
+.battery {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+/* Notification banner. */
+.banner {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.10);
+}
+
+/* Active toggle (shuffle / repeat) tints green like the macOS version. */
+.transport.active {
+  color: #3ad07a;
+}
+
+/* Pomodoro timer. */
+.pomodoro {
+  font-size: 22px;
+  font-weight: 600;
+  font-feature-settings: "tnum";
+}
+
+/* File shelf chips. */
+.shelf .chip {
+  padding: 2px 6px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.10);
+}
+
+/* Volume slider + screenshot box + shelf share the expand-fade with .controls. */
+

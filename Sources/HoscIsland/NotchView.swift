@@ -17,7 +17,7 @@ enum NotchMetrics {
     static func expandedVisibleHeight(topInset: CGFloat, hasMusic: Bool, hasShelf: Bool) -> CGFloat {
         if hasMusic { return expandedHeight + (hasShelf ? shelfRowHeight : 0) }
         if hasShelf { return topInset + shelfRowHeight + 18 }
-        return topInset + 96  // idle expanded
+        return topInset + 120  // idle expanded (Pomodoro widget)
     }
 
     /// Extra width added to each side of the notch when music is playing, so the
@@ -211,6 +211,7 @@ struct BatteryView: View {
 struct NotchView: View {
     @ObservedObject var nowPlaying: NowPlayingManager
     @ObservedObject var shelf: ShelfStore
+    @ObservedObject var pomodoro: PomodoroTimer
     @ObservedObject private var settings = Settings.shared
     @EnvironmentObject var state: NotchState
     let notchWidth: CGFloat
@@ -685,17 +686,22 @@ struct NotchView: View {
         .buttonStyle(.plain)
     }
 
+    /// Idle (no music) expanded card shows a Pomodoro timer.
     private var idleContent: some View {
         VStack(spacing: 8) {
-            Image(systemName: "music.note.list")
-                .font(.system(size: 28))
+            Label("Pomodoro", systemImage: "timer")
+                .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.5))
-            Text("Çalan müzik yok")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.white.opacity(0.6))
-            Text("Music ya da Spotify'da bir şey çal")
-                .font(.system(size: 11))
-                .foregroundStyle(.white.opacity(0.35))
+            Text(pomodoro.label)
+                .font(.system(size: 34, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(.white)
+            HStack(spacing: 18) {
+                controlButton(pomodoro.running ? "pause.fill" : "play.fill", size: 20) {
+                    pomodoro.toggle()
+                }
+                controlButton("arrow.counterclockwise", size: 16) { pomodoro.reset() }
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

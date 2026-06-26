@@ -40,6 +40,9 @@ final class Settings: ObservableObject {
     private let musicKey = "showMusic"
     private let batteryKey = "batteryMode"
     private let interactionKey = "interactionMode"
+    private let movableKey = "movableNotch"
+    private let offsetXKey = "notchOffsetX"
+    private let offsetYKey = "notchOffsetY"
 
     /// Whether the island opens on hover or on click.
     @Published var interactionMode: InteractionMode {
@@ -66,6 +69,29 @@ final class Settings: ObservableObject {
         didSet { defaults.set(batteryMode.rawValue, forKey: batteryKey) }
     }
 
+    /// Whether the island can be dragged to a custom position.
+    @Published var movableNotch: Bool {
+        didSet { defaults.set(movableNotch, forKey: movableKey) }
+    }
+
+    /// Launch HoscIsland at login. Backed by the system login-item registration
+    /// (`SMAppService`), not UserDefaults — `didSet` syncs it. (Skipped during
+    /// init, where Swift doesn't fire `didSet`, so it reads the live status.)
+    @Published var launchAtLogin: Bool {
+        didSet { LoginItem.set(launchAtLogin) }
+    }
+
+    /// Custom position offset from the default top-center anchor (screen points,
+    /// +x = right, +y = up). Persisted but not `@Published` — geometry reads it
+    /// live while dragging.
+    var notchOffset: CGSize {
+        get { CGSize(width: defaults.double(forKey: offsetXKey), height: defaults.double(forKey: offsetYKey)) }
+        set {
+            defaults.set(Double(newValue.width), forKey: offsetXKey)
+            defaults.set(Double(newValue.height), forKey: offsetYKey)
+        }
+    }
+
     /// The CGDirectDisplayID the island should appear on.
     /// `nil` means "automatic" (prefer the screen with the notch).
     @Published var selectedDisplayID: CGDirectDisplayID? {
@@ -89,6 +115,8 @@ final class Settings: ObservableObject {
         showMusic = (defaults.object(forKey: musicKey) as? Bool) ?? true
         batteryMode = BatteryMode(rawValue: defaults.string(forKey: batteryKey) ?? "") ?? .onChange
         interactionMode = InteractionMode(rawValue: defaults.string(forKey: interactionKey) ?? "") ?? .hover
+        movableNotch = (defaults.object(forKey: movableKey) as? Bool) ?? false
+        launchAtLogin = LoginItem.isEnabled
     }
 
     /// All currently connected screens, paired with their display IDs.

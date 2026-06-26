@@ -80,6 +80,32 @@ struct SettingsView: View {
                     .controlSize(.small)
                 }
 
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Taşınabilir ada")
+                            .font(.system(size: 12, weight: .medium))
+                        Text("Açıkken adayı sürükleyerek taşı")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    if settings.movableNotch {
+                        Button("Sıfırla") {
+                            settings.notchOffset = .zero
+                            settings.movableNotch = true   // republish → controller re-centers
+                        }
+                        .buttonStyle(.borderless)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                    }
+                    Toggle("", isOn: $settings.movableNotch)
+                        .toggleStyle(.switch)
+                        .labelsHidden()
+                        .controlSize(.small)
+                }
+
+                featureToggle("Açılışta başlat", "Oturum açınca otomatik başlasın", isOn: $settings.launchAtLogin)
+
                 featureToggle("Müzik göstergesi", "Çalan parça + kontroller", isOn: $settings.showMusic)
                 featureToggle("WhatsApp banner", "Gelen mesajı gönderen + metniyle göster", isOn: $settings.showNotifications)
                 featureToggle("Okunmamış rozeti", "WhatsApp okunmamış sayısı", isOn: $settings.showUnreadCount)

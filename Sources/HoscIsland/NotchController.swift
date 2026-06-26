@@ -2,77 +2,33 @@ import AppKit
 import SwiftUI
 import Combine
 
-/// A transient notification banner to flash in the notch.
-struct NotchNotification: Equatable {
-    let id = UUID()
-    var icon: NSImage?
-    var sender: String
-    var message: String
-    static func == (l: NotchNotification, r: NotchNotification) -> Bool { l.id == r.id }
-}
-
-/// A transient battery/charging flash.
-struct BatteryFlash: Equatable {
-    let id = UUID()
-    var percentage: Int
-    var isCharging: Bool
-    static func == (l: BatteryFlash, r: BatteryFlash) -> Bool { l.id == r.id }
-}
-
-/// A screenshot preview with quick actions.
-struct ScreenshotPreview: Equatable {
-    let id = UUID()
-    var url: URL
-    var image: NSImage?
-    static func == (l: ScreenshotPreview, r: ScreenshotPreview) -> Bool { l.id == r.id }
-}
-
-/// Shared UI state shared between the controller and the SwiftUI view.
-final class NotchState: ObservableObject {
-    @Published var isExpanded: Bool = false
-    @Published var notification: NotchNotification?
-    @Published var unreadCount: Int = 0
-    @Published var batteryFlash: BatteryFlash?
-    @Published var batteryPercentage: Int = 100
-    @Published var batteryPlugged: Bool = false
-    @Published var screenshot: ScreenshotPreview?
-    /// Cursor is over the collapsed notch (used for the click-mode hover nudge).
-    @Published var hovering: Bool = false
-    var whatsAppIcon: NSImage?
-}
-
-/// Hosting view that is only "solid" (hit-testable, drop-accepting) within
-/// `interactiveRect`; clicks elsewhere pass through to the menu bar underneath.
-/// Used so the collapsed notch can accept file drops while the wide compact pill
-/// wings stay click-through.
-final class PassthroughHostingView<Content: View>: NSHostingView<Content> {
-    var interactiveRect: CGRect = .zero
-
-    override func hitTest(_ point: NSPoint) -> NSView? {
-        let local = convert(point, from: nil)
-        return interactiveRect.contains(local) ? super.hitTest(point) : nil
-    }
-}
-
+/// Top-level coordinator: owns the panel, the shared `NotchState`, and wires the
+/// feature monitors (now-playing, notifications, battery, screenshots) plus the
+/// interaction monitor together. Geometry lives in `NotchGeometry`, cursor/scroll
+/// handling in `NotchInteractionMonitor`, models/state in `NotchModels`.
 final class NotchController {
     private var panel: NSPanel!
     private var hostingView: PassthroughHostingView<AnyView>!
     private let state = NotchState()
     private let nowPlaying = NowPlayingManager()
     private let shelf = ShelfStore()
-    private var notchWidth: CGFloat = 200
-    private var topInset: CGFloat = 38
+    private let pomodoro = PomodoroTimer()
+    private var geometry = NotchGeometry(notchWidth: 200, topInset: 38)
     private var cancellables = Set<AnyCancellable>()
-    private var collapseWorkItem: DispatchWorkItem?
+
     private var notificationClearItem: DispatchWorkItem?
-    private var hoverTimer: Timer?
+    private var batteryClearItem: DispatchWorkItem?
+    private var screenshotClearItem: DispatchWorkItem?
 
     private let notificationWatcher = NotificationWatcher()
     private let batteryMonitor = BatteryMonitor()
     private let screenshotWatcher = ScreenshotWatcher()
     private var cachedWhatsAppIcon: NSImage?
-    private var batteryClearItem: DispatchWorkItem?
-    private var screenshotClearItem: DispatchWorkItem?
+    private var interaction: NotchInteractionMonitor!
+
+    /// Low-battery warning: fire once when crossing below this while discharging.
+    private static let lowBatteryThreshold = 20
+    private var lastBatteryPercentage = 100
 
     private var targetScreen: NSScreen? { Settings.shared.resolvedScreen() }
     private var showUnread: Bool { Settings.shared.showUnreadCount && state.unreadCount > 0 }
@@ -87,15 +43,21 @@ final class NotchController {
 
     func install() {
         guard let screen = targetScreen else { return }
-        notchWidth = Self.detectNotchWidth(for: screen)
-        topInset = Self.detectTopInset(for: screen)
+        geometry.notchWidth = NotchGeometry.detectNotchWidth(for: screen)
+        geometry.topInset = NotchGeometry.detectTopInset(for: screen)
+        geometry.offset = Settings.shared.notchOffset
         buildPanel(on: screen)
         nowPlaying.start()
-        startHoverMonitor()
+        startInteractionMonitor()
         startNotificationWatcher()
         startBatteryMonitor()
         startScreenshotWatcher()
+        observeStateChanges()
+    }
 
+    // MARK: - State observers
+
+    private func observeStateChanges() {
         // Resize the interactive/drop region as the notch changes mode (collapsed
         // notch = small drop zone; expanded / preview / banner = full).
         Publishers.Merge3(
@@ -112,6 +74,28 @@ final class NotchController {
             .sink { [weak self] _ in self?.updateInteractiveRect() }
             .store(in: &cancellables)
 
+        // Toggle drag-to-move (only takes effect while the island is interactive).
+        // Also re-syncs the saved offset so the "Sıfırla" button (which zeroes the
+        // offset then re-sets this flag) snaps the island back to center.
+        Settings.shared.$movableNotch
+            .receive(on: RunLoop.main)
+            .sink { [weak self] movable in
+                guard let self else { return }
+                self.panel?.isMovableByWindowBackground = movable
+                self.geometry.offset = Settings.shared.notchOffset
+                if let screen = self.targetScreen { self.positionPanel(on: screen) }
+            }
+            .store(in: &cancellables)
+
+        // Persist the new position whenever the user drags the island.
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.didMoveNotification,
+            object: nil, queue: .main
+        ) { [weak self] note in
+            guard let self, let win = note.object as? NSWindow, win === self.panel else { return }
+            self.captureDragOffset()
+        }
+
         // Move to the newly chosen screen when the user changes the setting.
         Settings.shared.$selectedDisplayID
             .receive(on: RunLoop.main)
@@ -124,6 +108,32 @@ final class NotchController {
             forName: NSApplication.didChangeScreenParametersNotification,
             object: nil, queue: .main
         ) { [weak self] _ in self?.relocate() }
+    }
+
+    // MARK: - Interaction monitor
+
+    private func startInteractionMonitor() {
+        let context = NotchInteractionMonitor.Context(
+            collapsedZone: { [weak self] in
+                guard let self, let s = self.targetScreen else { return nil }
+                return self.geometry.collapsedRect(on: s, isCompact: self.isCompact)
+            },
+            expandedZone: { [weak self] in
+                guard let self, let s = self.targetScreen else { return nil }
+                let hasMusic = Settings.shared.showMusic && self.nowPlaying.track != nil
+                return self.geometry.expandedRect(on: s, hasMusic: hasMusic, hasShelf: !self.shelf.items.isEmpty)
+            },
+            isExpanded: { [weak self] in self?.state.isExpanded ?? false },
+            screenshotActive: { [weak self] in self?.state.screenshot != nil },
+            hasTrack: { [weak self] in self?.nowPlaying.track != nil }
+        )
+        let monitor = NotchInteractionMonitor(context: context)
+        monitor.onSetExpanded = { [weak self] in self?.state.isExpanded = $0 }
+        monitor.onHoverChange = { [weak self] in self?.state.hovering = $0 }
+        monitor.onNext = { [weak self] in self?.nowPlaying.next() }
+        monitor.onPrevious = { [weak self] in self?.nowPlaying.previous() }
+        monitor.start()
+        interaction = monitor
     }
 
     // MARK: - WhatsApp notifications
@@ -141,19 +151,15 @@ final class NotchController {
         notificationWatcher.start()
     }
 
-    /// Update which part of the (fixed-size) window is interactive / drop-accepting.
-    /// Collapsed → just the central notch (a drop target; wings stay click-through).
-    /// Expanded / preview / banner → the whole island.
-    private func updateInteractiveRect() {
-        let W = NotchMetrics.expandedWidth
-        let H = NotchMetrics.windowHeight
-        let full = state.isExpanded || state.screenshot != nil || state.notification != nil
-        hostingView.interactiveRect = full ? CGRect(x: 0, y: 0, width: W, height: H) : .zero
-        // Collapsed → the whole window ignores mouse events, so NOTHING under the
-        // notch is blocked (guaranteed passthrough). Open mechanisms don't need the
-        // window to receive events: hover uses the mouse-location poll, click/swipe
-        // use non-consuming global monitors.
-        panel?.ignoresMouseEvents = !full
+    /// Briefly show the incoming message as a banner, then clear it.
+    private func flashNotification(sender: String, message: String) {
+        guard Settings.shared.showNotifications else { return }
+        notificationClearItem?.cancel()
+        state.notification = NotchNotification(icon: cachedWhatsAppIcon, sender: sender, message: message)
+
+        let clear = DispatchWorkItem { [weak self] in self?.state.notification = nil }
+        notificationClearItem = clear
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0, execute: clear)
     }
 
     // MARK: - Screenshot preview
@@ -176,16 +182,31 @@ final class NotchController {
 
     private func startBatteryMonitor() {
         batteryMonitor.onPlugChange = { [weak self] _ in self?.flashBattery() }
-        // Mirror live battery state into the shared UI state for the "always" mode.
+        // Mirror live battery state into the shared UI state for the "always" mode,
+        // and warn once when crossing below the low threshold while on battery.
         batteryMonitor.$percentage
             .receive(on: RunLoop.main)
-            .sink { [weak self] p in self?.state.batteryPercentage = p }
+            .sink { [weak self] p in
+                self?.state.batteryPercentage = p
+                self?.checkLowBattery(p)
+            }
             .store(in: &cancellables)
         batteryMonitor.$isPlugged
             .receive(on: RunLoop.main)
             .sink { [weak self] plugged in self?.state.batteryPlugged = plugged }
             .store(in: &cancellables)
         batteryMonitor.start()
+    }
+
+    /// Flash a low-battery warning once, when the level first drops to/below the
+    /// threshold while discharging. The flash is rendered red at low levels by
+    /// the view, so we reuse `flashBattery()` for the visual.
+    private func checkLowBattery(_ p: Int) {
+        defer { lastBatteryPercentage = p }
+        guard Settings.shared.batteryMode != .off, !batteryMonitor.isPlugged else { return }
+        if lastBatteryPercentage > Self.lowBatteryThreshold && p <= Self.lowBatteryThreshold {
+            flashBattery()
+        }
     }
 
     private func flashBattery() {
@@ -200,25 +221,6 @@ final class NotchController {
         DispatchQueue.main.asyncAfter(deadline: .now() + 4.0, execute: clear)
     }
 
-    /// Briefly show the incoming message as a banner, then clear it.
-    private func flashNotification(sender: String, message: String) {
-        guard Settings.shared.showNotifications else { return }
-        notificationClearItem?.cancel()
-        state.notification = NotchNotification(icon: cachedWhatsAppIcon, sender: sender, message: message)
-
-        let clear = DispatchWorkItem { [weak self] in self?.state.notification = nil }
-        notificationClearItem = clear
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0, execute: clear)
-    }
-
-    /// Recompute which screen to use and move the panel there.
-    private func relocate() {
-        guard let screen = targetScreen else { return }
-        notchWidth = Self.detectNotchWidth(for: screen)
-        positionPanel(on: screen)
-        panel.orderFrontRegardless()
-    }
-
     // MARK: - Panel setup
 
     private func buildPanel(on screen: NSScreen) {
@@ -226,8 +228,9 @@ final class NotchController {
             NotchView(
                 nowPlaying: nowPlaying,
                 shelf: shelf,
-                notchWidth: notchWidth,
-                topInset: topInset,
+                pomodoro: pomodoro,
+                notchWidth: geometry.notchWidth,
+                topInset: geometry.topInset,
                 isExpanded: Binding(
                     get: { [weak state] in state?.isExpanded ?? false },
                     set: { [weak state] in state?.isExpanded = $0 }
@@ -251,6 +254,7 @@ final class NotchController {
         panel.level = .statusBar + 2
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
         panel.isMovable = false
+        panel.isMovableByWindowBackground = Settings.shared.movableNotch
         // Mouse events are routed via the view's hitTest (interactiveRect) rather
         // than ignoring them wholesale, so the notch can accept file drops while
         // the rest stays click-through.
@@ -264,142 +268,54 @@ final class NotchController {
         panel.orderFrontRegardless()
     }
 
-    // MARK: - Hover via mouse-location polling
-    //
-    // We poll the cursor position instead of using tracking areas because a
-    // tracking area requires the window to *capture* mouse events, which would
-    // block clicks to the menu bar sitting under the collapsed pill. Polling lets
-    // the collapsed window stay fully click-through (`ignoresMouseEvents = true`).
-
-    private func startHoverMonitor() {
-        hoverTimer = Timer.scheduledTimer(withTimeInterval: 0.07, repeats: true) { [weak self] _ in
-            self?.checkHover()
-        }
-        startSwipeMonitor()
-    }
-
-    // MARK: - Swipe-to-change-track (non-consuming scroll monitor)
-
-    private var swipeAccum: CGFloat = 0
-    private var swipeArmed = true
-
-    private func startSwipeMonitor() {
-        let handler: (NSEvent) -> Void = { [weak self] event in self?.handleScroll(event) }
-        // Global monitor sees scrolls headed to other apps (over the notch) without
-        // consuming them; local monitor covers scrolls over our own window.
-        NSEvent.addGlobalMonitorForEvents(matching: .scrollWheel) { handler($0) }
-        NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { handler($0); return $0 }
-
-        // Click-to-open: a non-consuming monitor so the notch stays passthrough.
-        NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown) { [weak self] _ in self?.handleClick() }
-        NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] e in self?.handleClick(); return e }
-    }
-
-    private func handleClick() {
-        guard Settings.shared.interactionMode == .click,
-              !state.isExpanded, state.screenshot == nil,
-              let screen = targetScreen else { return }
-        if collapsedScreenRect(screen).contains(NSEvent.mouseLocation) {
-            state.isExpanded = true
-        }
-    }
-
-    private func handleScroll(_ event: NSEvent) {
-        guard nowPlaying.track != nil, let screen = targetScreen else { return }
-        let zone = state.isExpanded ? expandedScreenRect(screen) : collapsedScreenRect(screen)
-        guard zone.contains(NSEvent.mouseLocation) else { swipeAccum = 0; swipeArmed = true; return }
-
-        if event.phase == .began { swipeAccum = 0; swipeArmed = true }
-        // Only horizontal swipes.
-        if abs(event.scrollingDeltaX) > abs(event.scrollingDeltaY) {
-            swipeAccum += event.scrollingDeltaX
-        }
-        if swipeArmed, abs(swipeAccum) > 50 {
-            swipeArmed = false
-            if swipeAccum > 0 { nowPlaying.previous() } else { nowPlaying.next() }
-        }
-        if event.phase == .ended || event.phase == .cancelled { swipeAccum = 0; swipeArmed = true }
-    }
-
-    private func checkHover() {
-        guard let screen = targetScreen else { return }
-        if state.screenshot != nil { return }
-        let mouse = NSEvent.mouseLocation
-        let zone = state.isExpanded ? expandedScreenRect(screen) : collapsedScreenRect(screen)
-        let inside = zone.contains(mouse)
-        let clickMode = Settings.shared.interactionMode == .click
-
-        // Track hover for the click-mode "nudge".
-        let hovering = inside && !state.isExpanded
-        if state.hovering != hovering { state.hovering = hovering }
-
-        if inside {
-            collapseWorkItem?.cancel()
-            collapseWorkItem = nil
-            // Hover-open only in hover mode; in click mode the tap handles opening.
-            if !state.isExpanded, !clickMode { state.isExpanded = true }
-        } else if state.isExpanded, collapseWorkItem == nil {
-            let work = DispatchWorkItem { [weak self] in
-                self?.state.isExpanded = false
-                self?.collapseWorkItem = nil
-            }
-            collapseWorkItem = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.18, execute: work)
-        }
-    }
-
-    // MARK: - Geometry (screen coordinates, bottom-left origin)
-
-    private func collapsedScreenRect(_ screen: NSScreen) -> NSRect {
-        let f = screen.frame
-        let w = NotchMetrics.collapsedWidth(notchWidth: notchWidth, hasMusic: isCompact)
-        let h = NotchMetrics.collapsedHeight
-        return NSRect(x: f.midX - w / 2, y: f.maxY - h, width: w, height: h)
-    }
-
-    private func expandedScreenRect(_ screen: NSScreen) -> NSRect {
-        let f = screen.frame
-        let w = NotchMetrics.expandedWidth
-        // Match the actually-visible island height so the hover zone doesn't
-        // extend into the invisible part of the (taller) window — otherwise the
-        // island stays stuck open while the cursor sits over empty window area.
-        let hasMusicNow = Settings.shared.showMusic && nowPlaying.track != nil
-        let h = NotchMetrics.expandedVisibleHeight(
-            topInset: topInset, hasMusic: hasMusicNow, hasShelf: !shelf.items.isEmpty
-        )
-        return NSRect(x: f.midX - w / 2, y: f.maxY - h, width: w, height: h)
+    /// Update which part of the (fixed-size) window is interactive / drop-accepting.
+    /// Collapsed → just the central notch (a drop target; wings stay click-through).
+    /// Expanded / preview / banner → the whole island.
+    private func updateInteractiveRect() {
+        let W = NotchMetrics.expandedWidth
+        let H = NotchMetrics.windowHeight
+        let full = state.isExpanded || state.screenshot != nil || state.notification != nil
+        hostingView.interactiveRect = full ? CGRect(x: 0, y: 0, width: W, height: H) : .zero
+        // Collapsed → the whole window ignores mouse events, so NOTHING under the
+        // notch is blocked (guaranteed passthrough). Open mechanisms don't need the
+        // window to receive events: hover uses the mouse-location poll, click/swipe
+        // use non-consuming global monitors.
+        panel?.ignoresMouseEvents = !full
     }
 
     /// The window is always the full (max) size, top-anchored and centered.
     private func positionPanel(on screen: NSScreen) {
-        let width = NotchMetrics.expandedWidth
-        let height = NotchMetrics.windowHeight
+        panel.setFrame(geometry.windowFrame(on: screen), display: true)
+    }
+
+    /// Read the panel's current frame back into the saved drag offset (clamped so
+    /// the island stays reachable on screen). Fires both from user drags and our
+    /// own `positionPanel` — idempotent in the latter case.
+    private func captureDragOffset() {
+        guard Settings.shared.movableNotch, let screen = targetScreen else { return }
         let f = screen.frame
-        panel.setFrame(
-            NSRect(x: f.midX - width / 2, y: f.maxY - height, width: width, height: height),
-            display: true
-        )
+        let frame = panel.frame
+        let defaultX = f.midX - NotchMetrics.expandedWidth / 2
+        let defaultY = f.maxY - NotchMetrics.windowHeight
+        let maxX = f.width / 2
+        let dx = min(max(frame.minX - defaultX, -maxX), maxX)
+        // Keep the top of the island from going above the screen or fully below it.
+        let dy = min(max(frame.minY - defaultY, -(f.height - 80)), 0)
+        let clamped = CGSize(width: dx, height: dy)
+        let raw = CGSize(width: frame.minX - defaultX, height: frame.minY - defaultY)
+        guard clamped != geometry.offset else { return }
+        geometry.offset = clamped
+        Settings.shared.notchOffset = clamped
+        // Snap the window back if the drag pushed it past the clamp, so the hover
+        // zones stay aligned with what's drawn.
+        if clamped != raw { positionPanel(on: screen) }
     }
 
-    // MARK: - Notch detection
-
-    static func detectNotchWidth(for screen: NSScreen) -> CGFloat {
-        // On notched Macs the safe-area top inset is > 0 and the auxiliary
-        // top-left/right areas describe the regions either side of the notch.
-        if #available(macOS 12.0, *), screen.safeAreaInsets.top > 0 {
-            let left = screen.auxiliaryTopLeftArea?.maxX ?? 0
-            let right = screen.auxiliaryTopRightArea?.minX ?? screen.frame.width
-            let width = right - left
-            if width > 60 && width < 400 { return width }
-        }
-        // Fallback width for Macs without a physical notch.
-        return 190
-    }
-
-    /// Vertical space taken by the camera/notch (the menu-bar height on notched
-    /// Macs). Used to keep the expanded content clear of the camera.
-    static func detectTopInset(for screen: NSScreen) -> CGFloat {
-        let inset = screen.safeAreaInsets.top
-        return inset > 0 ? inset : 12  // non-notched Macs need only a small margin
+    /// Recompute which screen to use and move the panel there.
+    private func relocate() {
+        guard let screen = targetScreen else { return }
+        geometry.notchWidth = NotchGeometry.detectNotchWidth(for: screen)
+        positionPanel(on: screen)
+        panel.orderFrontRegardless()
     }
 }
