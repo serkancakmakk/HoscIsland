@@ -2,6 +2,12 @@
 
 Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Boring Notch tarzı).
 
+## [1.31.0] — 2026-06-27
+### Eklendi
+- **Şarkı sözleri** 🎤 (her iki platform): Çalan parçanın **senkron** sözleri
+  lrclib.net'ten (anahtarsız) çekilir; müzik kartında **o anki satır** çalmayla
+  birlikte güncellenir.
+
 ## [1.30.0] — 2026-06-27
 ### Eklendi
 - **Açık pencereler göstergesi** 🗂️ (her iki platform): Açık adada o an açık
@@ -283,7 +289,7 @@ Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Borin
 - [x] 🔊 **Ses kontrolü** — notch içinde sistem ses kaydırıcısı. ✅ (1.6.0)
       _(AirPods/çıkış cihazı seçimi sonraya bırakıldı)_
 - [ ] ❤️ **Beğen / favori** — çalan parçayı beğenme (Music "Love", Spotify save).
-- [ ] 🎤 **Şarkı sözleri** — varsa senkron sözleri genişletilmiş kartta gösterme.
+- [x] 🎤 **Şarkı sözleri** — senkron sözler, o anki satır. ✅ (1.31.0)
 
 ### 🔋 Pil & Güç
 - [x] 🔋 **Şarj göstergesi** — kablo takınca notch'ta pil + yüzde flash'ı. ✅ (1.8.0)

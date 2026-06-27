@@ -58,6 +58,8 @@ pub struct IslandView {
     weather_box: gtk::Box,
     weather_icon: gtk::Image,
     weather_label: gtk::Label,
+    lyric_label: gtk::Label,
+    lyric_lines: Rc<RefCell<Vec<(f64, String)>>>,
 }
 
 impl IslandView {
@@ -163,6 +165,36 @@ impl IslandView {
         self.weather_label.set_text(&format!("{city} · {temp_c}°"));
         self.weather_box.set_visible(true);
     }
+
+    pub fn set_lyrics(&self, lines: Vec<(f64, String)>) {
+        *self.lyric_lines.borrow_mut() = lines;
+        if self.lyric_lines.borrow().is_empty() {
+            self.lyric_label.set_visible(false);
+        }
+    }
+
+    /// Show the lyric line active at `position` seconds.
+    pub fn update_lyric(&self, position: f64) {
+        let lines = self.lyric_lines.borrow();
+        if lines.is_empty() {
+            return;
+        }
+        let mut current: Option<&str> = None;
+        for (t, text) in lines.iter() {
+            if *t <= position + 0.2 {
+                current = Some(text);
+            } else {
+                break;
+            }
+        }
+        match current {
+            Some(text) if !text.is_empty() => {
+                self.lyric_label.set_text(text);
+                self.lyric_label.set_visible(true);
+            }
+            _ => self.lyric_label.set_visible(false),
+        }
+    }
 }
 
 pub fn build(
@@ -222,6 +254,13 @@ pub fn build(
     battery.set_visible(false);
     top.append(&battery);
     root.append(&top);
+
+    // --- Synced lyric line ---
+    let lyric_label = gtk::Label::new(None);
+    lyric_label.add_css_class("lyric");
+    lyric_label.set_ellipsize(gtk::pango::EllipsizeMode::End);
+    lyric_label.set_visible(false);
+    root.append(&lyric_label);
 
     // --- Notification banner ---
     let banner = label("", "banner");
@@ -352,6 +391,8 @@ pub fn build(
         weather_box: weather_box.clone(),
         weather_icon: weather_icon.clone(),
         weather_label: weather_label.clone(),
+        lyric_label: lyric_label.clone(),
+        lyric_lines: Rc::new(RefCell::new(Vec::new())),
     };
 
     // Seek: dragging the progress bar issues SetPosition for the current track.

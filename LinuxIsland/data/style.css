@@ -84,6 +84,13 @@
   font-feature-settings: "tnum";
 }
 
+/* Synced lyric line. */
+.lyric {
+  font-size: 11px;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.9);
+}
+
 /* Brightness/volume HUD. */
 .hud {
   padding: 4px 14px;

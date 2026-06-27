@@ -147,14 +147,33 @@ fn start_services(
     settings: &Rc<RefCell<Settings>>,
     commands: async_channel::Receiver<services::mpris::Command>,
 ) {
-    // Now playing (MPRIS): track changes + progress polling.
+    // Now playing (MPRIS): track changes + progress + synced lyrics.
     if settings.borrow().show_music {
         let v = view.clone();
         let vp = view.clone();
+        let last_title = Rc::new(RefCell::new(String::new()));
         services::mpris::start(
             commands,
-            move |track| v.set_track(track.as_ref()),
-            move |(pos, len)| vp.set_progress(pos, len),
+            move |track| {
+                v.set_track(track.as_ref());
+                match track.as_ref() {
+                    Some(t) if !t.title.is_empty() && *last_title.borrow() != t.title => {
+                        *last_title.borrow_mut() = t.title.clone();
+                        let vl = v.clone();
+                        services::lyrics::fetch(
+                            t.title.clone(), t.artist.clone(), t.album.clone(),
+                            t.length_us / 1_000_000,
+                            move |lines| vl.set_lyrics(lines),
+                        );
+                    }
+                    None => v.set_lyrics(Vec::new()),
+                    _ => {}
+                }
+            },
+            move |(pos, len)| {
+                vp.set_progress(pos, len);
+                vp.update_lyric(pos as f64 / 1_000_000.0);
+            },
         );
     }
 

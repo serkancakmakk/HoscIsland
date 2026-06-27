@@ -226,6 +226,7 @@ struct NotchView: View {
     @ObservedObject var gmail: GmailManager
     @ObservedObject var weather: WeatherManager
     @ObservedObject var windows: WindowsManager
+    @ObservedObject var lyrics: LyricsManager
     @ObservedObject private var settings = Settings.shared
     @EnvironmentObject var state: NotchState
     let notchWidth: CGFloat
@@ -282,6 +283,8 @@ struct NotchView: View {
             // Expand into a drop zone while a drag hovers the notch.
             if targeted { isExpanded = true }
         }
+        .onChange(of: nowPlaying.track?.title) { _, _ in refreshLyrics() }
+        .onAppear { refreshLyrics() }
         // Click-to-open is handled at the AppKit layer (mouseDown) for reliability
         // in the non-activating panel.
     }
@@ -289,6 +292,11 @@ struct NotchView: View {
     /// In click mode, the collapsed pill grows a touch on hover as an affordance.
     private var nudge: Bool {
         settings.interactionMode == .click && state.hovering && !isExpanded && !showScreenshot && !showBanner
+    }
+
+    private func refreshLyrics() {
+        guard let t = nowPlaying.track else { return }
+        lyrics.update(title: t.title, artist: t.artist, album: t.album, duration: t.duration)
     }
 
     private var hasMusic: Bool { settings.showMusic && nowPlaying.track != nil }
@@ -752,6 +760,16 @@ struct NotchView: View {
                         .foregroundStyle(.white.opacity(0.45)).lineLimit(1)
                 }
                 Spacer(minLength: 0)
+            }
+            if let lyric = lyrics.line(at: track.position) {
+                Spacer(minLength: 6)
+                Text(lyric)
+                    .font(.system(size: 11, weight: .medium))
+                    .italic()
+                    .foregroundStyle(.white.opacity(0.9))
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity)
+                    .transition(.opacity)
             }
             Spacer(minLength: 8)
             if track.duration > 0 {

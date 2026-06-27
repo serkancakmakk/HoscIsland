@@ -19,6 +19,7 @@ final class NotchController {
     private var hudClearItem: DispatchWorkItem?
     private let weather = WeatherManager()
     private let windowsManager = WindowsManager()
+    private let lyrics = LyricsManager()
     private var geometry = NotchGeometry(notchWidth: 200, topInset: 38)
     private var cancellables = Set<AnyCancellable>()
 
@@ -292,6 +293,7 @@ final class NotchController {
                 gmail: gmail,
                 weather: weather,
                 windows: windowsManager,
+                lyrics: lyrics,
                 notchWidth: geometry.notchWidth,
                 topInset: geometry.topInset,
                 isExpanded: Binding(
