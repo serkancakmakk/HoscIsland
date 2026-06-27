@@ -20,6 +20,8 @@ use crate::pomodoro::Pomodoro;
 use crate::services::{screenshots, volume};
 use crate::settings::{InteractionMode, Settings};
 use crate::shelf::ShelfStore;
+use crate::ui::clipboard::ClipboardView;
+use crate::ui::gmail::GmailView;
 use crate::ui::settings_window;
 use crate::ui::shelf::ShelfView;
 
@@ -43,6 +45,8 @@ pub struct IslandView {
     shot_path: Rc<RefCell<Option<String>>>,
     last_track: Rc<RefCell<Option<Track>>>,
     shelf: ShelfView,
+    pub clipboard: ClipboardView,
+    pub gmail: GmailView,
 }
 
 impl IslandView {
@@ -245,6 +249,12 @@ pub fn build(
     pomo_play.connect_clicked(clone!(@strong pomo => move |_| pomo.toggle()));
     pomo_reset.connect_clicked(clone!(@strong pomo => move |_| pomo.reset()));
 
+    // --- Gmail + clipboard strips ---
+    let gmail = GmailView::build();
+    root.append(&gmail.container);
+    let clipboard = ClipboardView::build();
+    root.append(&clipboard.container);
+
     // --- File shelf ---
     let shelf = ShelfView::build(shelf_store);
     root.append(&shelf.container);
@@ -268,6 +278,8 @@ pub fn build(
         shot_path: shot_path.clone(),
         last_track: Rc::new(RefCell::new(None)),
         shelf: shelf.clone(),
+        clipboard: clipboard.clone(),
+        gmail: gmail.clone(),
     };
 
     // Seek: dragging the progress bar issues SetPosition for the current track.
@@ -329,7 +341,11 @@ pub fn build(
         on_previous: Box::new(clone!(@strong controls => move || controls.previous())),
     };
     let click_mode = cfg.interaction_mode == InteractionMode::Click;
-    interaction::attach(&root, handlers, click_mode);
+    let timing = interaction::HoverTiming {
+        open_ms: cfg.hover_sensitivity.open_ms(),
+        close_ms: cfg.hover_sensitivity.close_ms(),
+    };
+    interaction::attach(&root, handlers, click_mode, timing);
 
     view
 }

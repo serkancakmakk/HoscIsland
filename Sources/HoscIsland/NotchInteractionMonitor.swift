@@ -27,6 +27,7 @@ final class NotchInteractionMonitor {
     private let context: Context
     private var hoverTimer: Timer?
     private var collapseWorkItem: DispatchWorkItem?
+    private var openWorkItem: DispatchWorkItem?
     private var eventMonitors: [Any] = []
 
     private var swipeAccum: CGFloat = 0
@@ -115,14 +116,33 @@ final class NotchInteractionMonitor {
             collapseWorkItem?.cancel()
             collapseWorkItem = nil
             // Hover-open only in hover mode; in click mode the tap handles opening.
-            if !expanded, !clickMode { onSetExpanded(true) }
-        } else if expanded, collapseWorkItem == nil {
-            let work = DispatchWorkItem { [weak self] in
-                self?.onSetExpanded(false)
-                self?.collapseWorkItem = nil
+            // Honour the configured open delay (instant when 0).
+            if !expanded, !clickMode, openWorkItem == nil {
+                let delay = Settings.shared.hoverSensitivity.openDelay
+                if delay <= 0 {
+                    onSetExpanded(true)
+                } else {
+                    let work = DispatchWorkItem { [weak self] in
+                        self?.onSetExpanded(true)
+                        self?.openWorkItem = nil
+                    }
+                    openWorkItem = work
+                    DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+                }
             }
-            collapseWorkItem = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.18, execute: work)
+        } else {
+            // Left the zone: cancel any pending open, schedule a delayed collapse.
+            openWorkItem?.cancel()
+            openWorkItem = nil
+            if expanded, collapseWorkItem == nil {
+                let work = DispatchWorkItem { [weak self] in
+                    self?.onSetExpanded(false)
+                    self?.collapseWorkItem = nil
+                }
+                collapseWorkItem = work
+                let delay = Settings.shared.hoverSensitivity.closeDelay
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+            }
         }
     }
 }

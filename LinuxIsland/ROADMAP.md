@@ -69,13 +69,21 @@ Durum: ☐ planlandı · ◐ kısmi/araştırma gerekli · ✅ tamam
 ### M3 — Bildirim & Raf  ✅
 - ✅ freedesktop bildirim monitörü + banner (`services/notifications.rs`).
 - ✅ **Dosya rafı**: DnD ile ekle, chip + ✕ + "Temizle", dışarı sürükle, kalıcı (`shelf.rs`, `ui/shelf.rs`).
+- ✅ Rafa **uygulama** ekleme (`.desktop` seçici + tıkla-başlat).
 - ☐ Okunmamış rozeti (kaynak sınırlı — freedesktop "okundu" durumu taşımaz).
+
+### M5 — Üretkenlik & entegrasyon  ✅ (macOS ile ortak)
+- ✅ **Pano geçmişi** (`wl-paste`/`wl-copy`) — `services/clipboard.rs`, `ui/clipboard.rs`.
+- ✅ **Olay flaşları** (GIO `VolumeMonitor`) — `services/devices.rs`.
+- ✅ **Gmail** (Atom feed, ureq+quick-xml) — `services/gmail.rs`, `ui/gmail.rs`.
+- ✅ **Pomodoro** — `pomodoro.rs`.
 
 ### M4 — Cila & dağıtım  ◐
 - ✅ Ayarlar (TOML) + tıkla/hover modu + taşınabilirlik (`settings.rs`, drag → margin).
 - ✅ **Ayar penceresi (GUI)** — sağ tıkla aç (`ui/settings_window.rs`).
 - ✅ **Açılışta otomatik başlat** — XDG `.desktop` autostart (`autostart.rs`, macOS ile ortak madde).
 - ✅ CI: macOS `.app` + Linux binary derleme; `[release]` ile GitHub Releases.
+- ✅ **Hover hassasiyeti** (Anında/Normal/Rahat) — açılma/kapanma gecikmesi (`interaction.rs`).
 - ☐ Çoklu monitör seçimi; equalizer animasyonu.
 - ☐ Flatpak paketleme; wlroots dışı kompozitör fallback'i; collapsed input passthrough.
 

@@ -3,196 +3,242 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject var settings = Settings.shared
     @State private var screens: [(id: CGDirectDisplayID, screen: NSScreen)] = Settings.availableScreens()
+    @State private var gmailEmailInput = ""
+    @State private var gmailPasswordInput = ""
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack(spacing: 10) {
-                Image(systemName: "circle.lefthalf.filled")
-                    .font(.system(size: 22))
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("HoscIsland")
-                        .font(.system(size: 16, weight: .bold))
-                    Text("Dynamic Island ayarları")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Divider()
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Hangi ekranda görünsün?")
-                    .font(.system(size: 13, weight: .semibold))
-
-                screenRow(
-                    title: "Otomatik",
-                    subtitle: "Notch'lu ekranı tercih eder",
-                    systemImage: "wand.and.stars",
-                    isSelected: settings.selectedDisplayID == nil
-                ) {
-                    settings.selectedDisplayID = nil
-                }
-
-                ForEach(screens, id: \.id) { entry in
-                    screenRow(
-                        title: entry.screen.localizedName,
-                        subtitle: subtitle(for: entry),
-                        systemImage: Settings.isNotched(entry.screen) ? "macbook" : "display",
-                        isSelected: settings.selectedDisplayID == entry.id
-                    ) {
-                        settings.selectedDisplayID = entry.id
-                    }
-                }
-            }
-
-            Button {
-                screens = Settings.availableScreens()
-            } label: {
-                Label("Ekranları yenile", systemImage: "arrow.clockwise")
-                    .font(.system(size: 11))
-            }
-            .buttonStyle(.borderless)
-            .foregroundStyle(.secondary)
-
-            Divider()
-
+        ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Özellikler")
-                    .font(.system(size: 13, weight: .semibold))
+                header
+                    .padding(.bottom, 4)
 
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Açılma şekli")
-                            .font(.system(size: 12, weight: .medium))
-                        Text("Üzerine gelince mi tıklayınca mı açılsın")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.secondary)
+                sectionTitle("Görünüm")
+                card {
+                    screenRow
+                    insetDivider
+                    tappableRow("arrow.clockwise", .gray, "Ekranları yenile") {
+                        screens = Settings.availableScreens()
                     }
-                    Spacer()
-                    Picker("", selection: $settings.interactionMode) {
-                        ForEach(InteractionMode.allCases, id: \.self) { mode in
-                            Text(mode.label).tag(mode)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .frame(width: 130)
-                    .controlSize(.small)
                 }
 
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Taşınabilir ada")
-                            .font(.system(size: 12, weight: .medium))
-                        Text("Açıkken adayı sürükleyerek taşı")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.secondary)
+                sectionTitle("Etkileşim")
+                card {
+                    row("hand.tap.fill", .purple, "Açılma şekli") {
+                        compactPicker($settings.interactionMode, InteractionMode.allCases) { $0.label }
                     }
-                    Spacer()
-                    if settings.movableNotch {
-                        Button("Sıfırla") {
-                            settings.notchOffset = .zero
-                            settings.movableNotch = true   // republish → controller re-centers
-                        }
-                        .buttonStyle(.borderless)
-                        .font(.system(size: 10))
-                        .foregroundStyle(.secondary)
+                    insetDivider
+                    row("timer", .teal, "Hover hassasiyeti") {
+                        compactPicker($settings.hoverSensitivity, HoverSensitivity.allCases) { $0.label }
                     }
-                    Toggle("", isOn: $settings.movableNotch)
-                        .toggleStyle(.switch)
-                        .labelsHidden()
-                        .controlSize(.small)
+                    insetDivider
+                    row("arrow.up.and.down.and.arrow.left.and.right", .orange, "Taşınabilir ada",
+                        subtitle: "Üst notch şeridinden tutup sürükle") {
+                        Toggle("", isOn: $settings.movableNotch)
+                            .labelsHidden().toggleStyle(.switch).controlSize(.small)
+                    }
+                    insetDivider
+                    tappableRow("arrow.counterclockwise", .gray, "Konumu sıfırla",
+                                enabled: settings.notchOffset != .zero) {
+                        settings.notchOffset = .zero
+                        settings.movableNotch = settings.movableNotch  // republish → re-center
+                    }
                 }
 
-                featureToggle("Açılışta başlat", "Oturum açınca otomatik başlasın", isOn: $settings.launchAtLogin)
-
-                featureToggle("Müzik göstergesi", "Çalan parça + kontroller", isOn: $settings.showMusic)
-                featureToggle("WhatsApp banner", "Gelen mesajı gönderen + metniyle göster", isOn: $settings.showNotifications)
-                featureToggle("Okunmamış rozeti", "WhatsApp okunmamış sayısı", isOn: $settings.showUnreadCount)
-
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Pil göstergesi")
-                            .font(.system(size: 12, weight: .medium))
-                        Text("Kapalı · sadece kablo değişince · her zaman")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.secondary)
+                sectionTitle("Özellikler")
+                card {
+                    toggleRow("power", .green, "Açılışta başlat", $settings.launchAtLogin)
+                    insetDivider
+                    toggleRow("music.note", .pink, "Müzik göstergesi", $settings.showMusic)
+                    insetDivider
+                    toggleRow("message.fill", .green, "WhatsApp banner", $settings.showNotifications)
+                    insetDivider
+                    toggleRow("bell.badge.fill", .red, "Okunmamış rozeti", $settings.showUnreadCount)
+                    insetDivider
+                    row("battery.100", .green, "Pil göstergesi") {
+                        compactPicker($settings.batteryMode, BatteryMode.allCases) { $0.label }
                     }
-                    Spacer()
-                    Picker("", selection: $settings.batteryMode) {
-                        ForEach(BatteryMode.allCases, id: \.self) { mode in
-                            Text(mode.label).tag(mode)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .frame(width: 190)
-                    .controlSize(.small)
                 }
+
+                sectionTitle("Gmail")
+                card { gmailContent }
             }
-
-            Spacer(minLength: 0)
+            .padding(18)
         }
-        .padding(20)
-        .frame(width: 400, height: 610)
+        .frame(width: 420, height: 600)
+        .background(softBackground)
         .onReceive(NotificationCenter.default.publisher(
             for: NSApplication.didChangeScreenParametersNotification)) { _ in
             screens = Settings.availableScreens()
         }
     }
 
-    private func subtitle(for entry: (id: CGDirectDisplayID, screen: NSScreen)) -> String {
-        let f = entry.screen.frame
-        let res = "\(Int(f.width))×\(Int(f.height))"
-        let notch = Settings.isNotched(entry.screen) ? " • Notch ✓" : ""
-        return res + notch
-    }
+    // MARK: - Gmail
 
-    private func featureToggle(_ title: String, _ subtitle: String, isOn: Binding<Bool>) -> some View {
-        Toggle(isOn: isOn) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.system(size: 12, weight: .medium))
-                Text(subtitle).font(.system(size: 10)).foregroundStyle(.secondary)
+    @ViewBuilder
+    private var gmailContent: some View {
+        if settings.gmailConnected {
+            row("envelope.fill", .red, settings.gmailEmail ?? "", subtitle: "Bağlı · gelen okunmamışlar adada") {
+                Button("Kaldır") { settings.disconnectGmail() }
+                    .buttonStyle(.borderless)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.red)
             }
-        }
-        .toggleStyle(.switch)
-        .controlSize(.small)
-    }
-
-    private func screenRow(
-        title: String,
-        subtitle: String,
-        systemImage: String,
-        isSelected: Bool,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 18))
-                    .frame(width: 26)
-                    .foregroundStyle(isSelected ? Color.accentColor : .primary)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(.primary)
-                    Text(subtitle)
-                        .font(.system(size: 10))
-                        .foregroundStyle(.secondary)
+        } else {
+            VStack(alignment: .leading, spacing: 9) {
+                HStack(spacing: 12) {
+                    badge("envelope.fill", .red)
+                    Text("Gmail bağla").font(.system(size: 13, weight: .medium))
+                    Spacer()
                 }
-                Spacer()
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 16))
-                    .foregroundStyle(isSelected ? Color.accentColor : Color.secondary.opacity(0.4))
+                TextField("ornek@gmail.com", text: $gmailEmailInput)
+                    .textFieldStyle(.roundedBorder)
+                    .textContentType(.username)
+                SecureField("Uygulama şifresi (16 hane)", text: $gmailPasswordInput)
+                    .textFieldStyle(.roundedBorder)
+                HStack {
+                    Link("Uygulama şifresi al ↗", destination: URL(string: "https://myaccount.google.com/apppasswords")!)
+                        .font(.system(size: 10))
+                    Spacer()
+                    Button("Bağla") {
+                        settings.connectGmail(email: gmailEmailInput, appPassword: gmailPasswordInput)
+                        gmailPasswordInput = ""
+                    }
+                    .disabled(gmailEmailInput.isEmpty || gmailPasswordInput.isEmpty)
+                }
+                Text("Google hesabında 2 adımlı doğrulama açıkken Uygulama Şifresi oluştur; normal şifre çalışmaz.")
+                    .font(.system(size: 9.5)).foregroundStyle(.secondary)
             }
-            .padding(.vertical, 8)
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 12).padding(.vertical, 10)
+        }
+    }
+
+    // MARK: - Header / background
+
+    private var header: some View {
+        HStack(spacing: 13) {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(LinearGradient(colors: [.indigo, .purple], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .frame(width: 46, height: 46)
+                .overlay(Image(systemName: "circle.lefthalf.filled")
+                    .font(.system(size: 24, weight: .medium)).foregroundStyle(.white))
+                .shadow(color: .purple.opacity(0.35), radius: 6, y: 3)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("HoscIsland").font(.system(size: 19, weight: .bold))
+                Text("Dynamic Island ayarları")
+                    .font(.system(size: 12)).foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+    }
+
+    private var softBackground: some View {
+        LinearGradient(
+            colors: [Color(nsColor: .underPageBackgroundColor), Color(nsColor: .windowBackgroundColor)],
+            startPoint: .top, endPoint: .bottom
+        )
+        .ignoresSafeArea()
+    }
+
+    // MARK: - Building blocks
+
+    private func sectionTitle(_ text: String) -> some View {
+        Text(text.uppercased())
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(.secondary)
+            .padding(.leading, 8)
+            .padding(.top, 6)
+    }
+
+    private func card<C: View>(@ViewBuilder _ content: () -> C) -> some View {
+        VStack(spacing: 0) { content() }
             .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(isSelected ? Color.accentColor.opacity(0.12) : Color.primary.opacity(0.04))
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color(nsColor: .controlBackgroundColor))
             )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(.white.opacity(0.07), lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.10), radius: 9, y: 3)
+    }
+
+    private var insetDivider: some View {
+        Divider().padding(.leading, 52).opacity(0.5)
+    }
+
+    private func badge(_ systemName: String, _ color: Color) -> some View {
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+            .fill(color.gradient)
+            .frame(width: 28, height: 28)
+            .overlay(Image(systemName: systemName)
+                .font(.system(size: 13, weight: .semibold)).foregroundStyle(.white))
+    }
+
+    private func row<T: View>(_ icon: String, _ color: Color, _ title: String,
+                              subtitle: String? = nil, @ViewBuilder trailing: () -> T) -> some View {
+        HStack(spacing: 12) {
+            badge(icon, color)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title).font(.system(size: 13, weight: .medium))
+                if let subtitle {
+                    Text(subtitle).font(.system(size: 10.5)).foregroundStyle(.secondary)
+                }
+            }
+            Spacer(minLength: 8)
+            trailing()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+    }
+
+    private func toggleRow(_ icon: String, _ color: Color, _ title: String, _ isOn: Binding<Bool>) -> some View {
+        row(icon, color, title) {
+            Toggle("", isOn: isOn).labelsHidden().toggleStyle(.switch).controlSize(.small)
+        }
+    }
+
+    private func tappableRow(_ icon: String, _ color: Color, _ title: String,
+                             enabled: Bool = true, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            row(icon, color, title) {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+            }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .disabled(!enabled)
+        .opacity(enabled ? 1 : 0.4)
+    }
+
+    private func compactPicker<V: Hashable>(_ selection: Binding<V>, _ options: [V],
+                                            label: @escaping (V) -> String) -> some View {
+        Picker("", selection: selection) {
+            ForEach(options, id: \.self) { Text(label($0)).tag($0) }
+        }
+        .labelsHidden()
+        .fixedSize()
+        .tint(.secondary)
+    }
+
+    @ViewBuilder
+    private var screenRow: some View {
+        row("macbook", .blue, "Ekran") {
+            Picker("", selection: $settings.selectedDisplayID) {
+                Text("Otomatik").tag(CGDirectDisplayID?.none)
+                ForEach(screens, id: \.id) { entry in
+                    Text(screenLabel(entry)).tag(CGDirectDisplayID?.some(entry.id))
+                }
+            }
+            .labelsHidden()
+            .fixedSize()
+            .tint(.secondary)
+        }
+    }
+
+    private func screenLabel(_ entry: (id: CGDirectDisplayID, screen: NSScreen)) -> String {
+        let notch = Settings.isNotched(entry.screen) ? " • Notch" : ""
+        return "\(entry.screen.localizedName)\(notch)"
     }
 }

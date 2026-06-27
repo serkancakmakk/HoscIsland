@@ -13,6 +13,8 @@ final class NotchController {
     private let nowPlaying = NowPlayingManager()
     private let shelf = ShelfStore()
     private let pomodoro = PomodoroTimer()
+    private let clipboard = ClipboardManager()
+    private let gmail = GmailManager()
     private var geometry = NotchGeometry(notchWidth: 200, topInset: 38)
     private var cancellables = Set<AnyCancellable>()
 
@@ -48,10 +50,14 @@ final class NotchController {
         geometry.offset = Settings.shared.notchOffset
         buildPanel(on: screen)
         nowPlaying.start()
+        clipboard.start()
         startInteractionMonitor()
+        startDragMonitor()
         startNotificationWatcher()
         startBatteryMonitor()
         startScreenshotWatcher()
+        startEventMonitor()
+        startGmail()
         observeStateChanges()
     }
 
@@ -79,22 +85,12 @@ final class NotchController {
         // offset then re-sets this flag) snaps the island back to center.
         Settings.shared.$movableNotch
             .receive(on: RunLoop.main)
-            .sink { [weak self] movable in
+            .sink { [weak self] _ in
                 guard let self else { return }
-                self.panel?.isMovableByWindowBackground = movable
                 self.geometry.offset = Settings.shared.notchOffset
                 if let screen = self.targetScreen { self.positionPanel(on: screen) }
             }
             .store(in: &cancellables)
-
-        // Persist the new position whenever the user drags the island.
-        NotificationCenter.default.addObserver(
-            forName: NSWindow.didMoveNotification,
-            object: nil, queue: .main
-        ) { [weak self] note in
-            guard let self, let win = note.object as? NSWindow, win === self.panel else { return }
-            self.captureDragOffset()
-        }
 
         // Move to the newly chosen screen when the user changes the setting.
         Settings.shared.$selectedDisplayID
@@ -121,7 +117,10 @@ final class NotchController {
             expandedZone: { [weak self] in
                 guard let self, let s = self.targetScreen else { return nil }
                 let hasMusic = Settings.shared.showMusic && self.nowPlaying.track != nil
-                return self.geometry.expandedRect(on: s, hasMusic: hasMusic, hasShelf: !self.shelf.items.isEmpty)
+                return self.geometry.expandedRect(on: s, hasMusic: hasMusic,
+                                                  hasShelf: !self.shelf.items.isEmpty,
+                                                  hasClipboard: !self.clipboard.items.isEmpty,
+                                                  hasGmail: self.gmail.connected && !self.gmail.messages.isEmpty)
             },
             isExpanded: { [weak self] in self?.state.isExpanded ?? false },
             screenshotActive: { [weak self] in self?.state.screenshot != nil },
@@ -209,6 +208,43 @@ final class NotchController {
         }
     }
 
+    // MARK: - Device / event flashes
+
+    private func startEventMonitor() {
+        let nc = NSWorkspace.shared.notificationCenter
+        nc.addObserver(forName: NSWorkspace.didMountNotification, object: nil, queue: .main) { [weak self] note in
+            let name = (note.userInfo?[NSWorkspace.volumeURLUserInfoKey] as? URL)?.lastPathComponent ?? "Disk"
+            self?.flashEvent(symbol: "externaldrive.fill", title: "Bağlandı", message: name)
+        }
+        nc.addObserver(forName: NSWorkspace.didUnmountNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.flashEvent(symbol: "externaldrive.badge.minus", title: "Çıkarıldı", message: "Disk")
+        }
+    }
+
+    /// A short banner flash for a system event (reuses the notification banner).
+    private func flashEvent(symbol: String, title: String, message: String) {
+        notificationClearItem?.cancel()
+        let icon = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
+        state.notification = NotchNotification(icon: icon, sender: title, message: message)
+        let clear = DispatchWorkItem { [weak self] in self?.state.notification = nil }
+        notificationClearItem = clear
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.5, execute: clear)
+    }
+
+    // MARK: - Gmail
+
+    private func startGmail() {
+        gmail.onNewMessage = { [weak self] msg in
+            self?.flashEvent(symbol: "envelope.fill", title: msg.author, message: msg.title)
+        }
+        gmail.start()
+        Settings.shared.$gmailEmail
+            .dropFirst()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.gmail.reconfigure() }
+            .store(in: &cancellables)
+    }
+
     private func flashBattery() {
         guard Settings.shared.batteryMode != .off else { return }
         batteryClearItem?.cancel()
@@ -229,6 +265,8 @@ final class NotchController {
                 nowPlaying: nowPlaying,
                 shelf: shelf,
                 pomodoro: pomodoro,
+                clipboard: clipboard,
+                gmail: gmail,
                 notchWidth: geometry.notchWidth,
                 topInset: geometry.topInset,
                 isExpanded: Binding(
@@ -254,7 +292,6 @@ final class NotchController {
         panel.level = .statusBar + 2
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
         panel.isMovable = false
-        panel.isMovableByWindowBackground = Settings.shared.movableNotch
         // Mouse events are routed via the view's hitTest (interactiveRect) rather
         // than ignoring them wholesale, so the notch can accept file drops while
         // the rest stays click-through.
@@ -288,27 +325,68 @@ final class NotchController {
         panel.setFrame(geometry.windowFrame(on: screen), display: true)
     }
 
-    /// Read the panel's current frame back into the saved drag offset (clamped so
-    /// the island stays reachable on screen). Fires both from user drags and our
-    /// own `positionPanel` — idempotent in the latter case.
-    private func captureDragOffset() {
-        guard Settings.shared.movableNotch, let screen = targetScreen else { return }
+    // MARK: - Drag to move
+    //
+    // `isMovableByWindowBackground` doesn't work here: the SwiftUI content fills
+    // the whole window so there's no draggable "background", and the collapsed
+    // panel ignores mouse events entirely. Instead we drive the move ourselves
+    // from non-consuming global+local monitors (which see the events even while
+    // the panel is click-through), grabbing only from the top "handle" strip so
+    // the controls below stay usable.
+
+    private var dragStartMouse: NSPoint?
+    private var dragStartOffset: CGSize = .zero
+
+    private func startDragMonitor() {
+        let down: (NSEvent) -> Void = { [weak self] _ in self?.dragBegin() }
+        let move: (NSEvent) -> Void = { [weak self] _ in self?.dragChange() }
+        let up: (NSEvent) -> Void = { [weak self] _ in self?.dragEnd() }
+        NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown) { down($0) }
+        NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { down($0); return $0 }
+        NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDragged) { move($0) }
+        NSEvent.addLocalMonitorForEvents(matching: .leftMouseDragged) { move($0); return $0 }
+        NSEvent.addGlobalMonitorForEvents(matching: .leftMouseUp) { up($0) }
+        NSEvent.addLocalMonitorForEvents(matching: .leftMouseUp) { up($0); return $0 }
+    }
+
+    /// The grab strip: the top of the island (notch/pill area), so dragging never
+    /// conflicts with the sliders/buttons in the expanded card below.
+    private func dragHandleRect(_ screen: NSScreen) -> NSRect {
         let f = screen.frame
-        let frame = panel.frame
-        let defaultX = f.midX - NotchMetrics.expandedWidth / 2
-        let defaultY = f.maxY - NotchMetrics.windowHeight
-        let maxX = f.width / 2
-        let dx = min(max(frame.minX - defaultX, -maxX), maxX)
-        // Keep the top of the island from going above the screen or fully below it.
-        let dy = min(max(frame.minY - defaultY, -(f.height - 80)), 0)
-        let clamped = CGSize(width: dx, height: dy)
-        let raw = CGSize(width: frame.minX - defaultX, height: frame.minY - defaultY)
-        guard clamped != geometry.offset else { return }
-        geometry.offset = clamped
-        Settings.shared.notchOffset = clamped
-        // Snap the window back if the drag pushed it past the clamp, so the hover
-        // zones stay aligned with what's drawn.
-        if clamped != raw { positionPanel(on: screen) }
+        let w = state.isExpanded
+            ? NotchMetrics.expandedWidth
+            : NotchMetrics.collapsedWidth(notchWidth: geometry.notchWidth, hasMusic: isCompact)
+        let h = state.isExpanded ? geometry.topInset + 14 : NotchMetrics.collapsedHeight
+        return NSRect(x: f.midX - w / 2 + geometry.offset.width,
+                      y: f.maxY - h + geometry.offset.height, width: w, height: h)
+    }
+
+    private func dragBegin() {
+        guard Settings.shared.movableNotch, let screen = targetScreen else { return }
+        guard dragHandleRect(screen).contains(NSEvent.mouseLocation) else { return }
+        dragStartMouse = NSEvent.mouseLocation
+        dragStartOffset = geometry.offset
+    }
+
+    private func dragChange() {
+        guard let start = dragStartMouse, let screen = targetScreen else { return }
+        let mouse = NSEvent.mouseLocation
+        let f = screen.frame
+        var off = CGSize(width: dragStartOffset.width + (mouse.x - start.x),
+                         height: dragStartOffset.height + (mouse.y - start.y))
+        // Keep the whole island on screen so it can never be dragged out of sight.
+        let maxX = max(0, f.width / 2 - NotchMetrics.expandedWidth / 2 - 8)
+        let maxDown = max(0, f.height - NotchMetrics.collapsedHeight - 8)
+        off.width = min(max(off.width, -maxX), maxX)
+        off.height = min(max(off.height, -maxDown), 0)  // 0 = top edge, can't go above
+        geometry.offset = off
+        positionPanel(on: screen)
+    }
+
+    private func dragEnd() {
+        guard dragStartMouse != nil else { return }
+        dragStartMouse = nil
+        Settings.shared.notchOffset = geometry.offset
     }
 
     /// Recompute which screen to use and move the panel there.

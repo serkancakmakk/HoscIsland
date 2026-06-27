@@ -6,18 +6,22 @@ enum NotchMetrics {
     static let collapsedHeight: CGFloat = 32
     static let expandedHeight: CGFloat = 250        // music-only expanded
     static let shelfRowHeight: CGFloat = 70
+    static let clipRowHeight: CGFloat = 40
+    static let gmailRowHeight: CGFloat = 78
     static let expandedWidth: CGFloat = 420
-    /// Fixed panel height — large enough for the tallest layout (music + shelf).
-    static var windowHeight: CGFloat { expandedHeight + shelfRowHeight }
+    /// Fixed panel height — large enough for the tallest layout (music + gmail + clipboard + shelf).
+    static var windowHeight: CGFloat { expandedHeight + gmailRowHeight + clipRowHeight + shelfRowHeight }
     static let cornerRadius: CGFloat = 14
 
     /// Actual visible height of the expanded island for the given content — used
     /// for both the view frame and the hover zone so they always match (otherwise
     /// the island stays "stuck" open over invisible window area).
-    static func expandedVisibleHeight(topInset: CGFloat, hasMusic: Bool, hasShelf: Bool) -> CGFloat {
-        if hasMusic { return expandedHeight + (hasShelf ? shelfRowHeight : 0) }
-        if hasShelf { return topInset + shelfRowHeight + 18 }
-        return topInset + 120  // idle expanded (Pomodoro widget)
+    static func expandedVisibleHeight(topInset: CGFloat, hasMusic: Bool, hasShelf: Bool,
+                                      hasClipboard: Bool = false, hasGmail: Bool = false) -> CGFloat {
+        // The shelf is always shown when expanded, so always reserve its row.
+        let body = hasMusic ? expandedHeight : topInset + 120  // idle = Pomodoro
+        return body + (hasGmail ? gmailRowHeight : 0)
+            + (hasClipboard ? clipRowHeight : 0) + shelfRowHeight
     }
 
     /// Extra width added to each side of the notch when music is playing, so the
@@ -212,6 +216,8 @@ struct NotchView: View {
     @ObservedObject var nowPlaying: NowPlayingManager
     @ObservedObject var shelf: ShelfStore
     @ObservedObject var pomodoro: PomodoroTimer
+    @ObservedObject var clipboard: ClipboardManager
+    @ObservedObject var gmail: GmailManager
     @ObservedObject private var settings = Settings.shared
     @EnvironmentObject var state: NotchState
     let notchWidth: CGFloat
@@ -282,6 +288,23 @@ struct NotchView: View {
     /// Pill widens for music, a notification, an unread badge, a battery indicator, or a shelf.
     private var isCompact: Bool {
         hasMusic || state.notification != nil || showUnread || state.batteryFlash != nil || alwaysBattery || hasShelf
+    }
+
+    /// Pick one or more apps from /Applications and add them to the shelf.
+    /// (Files are added by dragging; this button makes adding apps easy since
+    /// they live in /Applications rather than somewhere you'd drag from.)
+    private func addApp() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = true
+        panel.allowedContentTypes = [.application]
+        panel.directoryURL = URL(fileURLWithPath: "/Applications")
+        panel.prompt = "Ekle"
+        NSApp.activate(ignoringOtherApps: true)
+        if panel.runModal() == .OK {
+            shelf.add(panel.urls)
+        }
     }
 
     private func handleDrop(_ providers: [NSItemProvider]) -> Bool {
@@ -527,17 +550,108 @@ struct NotchView: View {
 
             if settings.showMusic, let track = nowPlaying.track {
                 musicSection(track)
-            } else if !hasShelf {
+            } else {
                 idleContent
             }
 
-            if hasShelf {
-                if hasMusic { Spacer(minLength: 10) }
-                shelfStrip
+            if gmail.connected, !gmail.messages.isEmpty {
+                Spacer(minLength: 8)
+                gmailStrip
             }
+
+            if !clipboard.items.isEmpty {
+                Spacer(minLength: 8)
+                clipboardStrip
+            }
+
+            // The shelf is always present when expanded, so apps/files can be
+            // added (via the + button) even when it's currently empty.
+            Spacer(minLength: 10)
+            shelfStrip
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 14)
+    }
+
+    private var clipboardStrip: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Label("Pano", systemImage: "doc.on.clipboard")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.6))
+                Spacer()
+                Button { clipboard.clear() } label: {
+                    Text("Temizle").font(.system(size: 10))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.white.opacity(0.5))
+            }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(clipboard.items, id: \.self) { item in
+                        Button { clipboard.copy(item) } label: {
+                            Text(item.trimmingCharacters(in: .whitespacesAndNewlines))
+                                .font(.system(size: 10))
+                                .lineLimit(1)
+                                .frame(maxWidth: 130, alignment: .leading)
+                                .padding(.horizontal, 8).padding(.vertical, 5)
+                                .background(RoundedRectangle(cornerRadius: 7).fill(Color.white.opacity(0.08)))
+                                .foregroundStyle(.white.opacity(0.85))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .frame(height: NotchMetrics.clipRowHeight - 6)
+    }
+
+    private var gmailStrip: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Label("Gmail", systemImage: "envelope.fill")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.6))
+                if gmail.unread > 0 {
+                    Text("\(gmail.unread)")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 5).padding(.vertical, 1)
+                        .background(Capsule().fill(Color.red.opacity(0.85)))
+                }
+                Spacer()
+            }
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 4) {
+                    ForEach(gmail.messages.prefix(8)) { msg in
+                        Button { openGmail(msg) } label: {
+                            HStack(spacing: 7) {
+                                Circle().fill(Color.blue).frame(width: 5, height: 5)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(msg.author)
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .foregroundStyle(.white.opacity(0.9)).lineLimit(1)
+                                    Text(msg.title)
+                                        .font(.system(size: 9))
+                                        .foregroundStyle(.white.opacity(0.55)).lineLimit(1)
+                                }
+                                Spacer(minLength: 0)
+                            }
+                            .padding(.horizontal, 8).padding(.vertical, 4)
+                            .background(RoundedRectangle(cornerRadius: 7).fill(Color.white.opacity(0.06)))
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .frame(height: NotchMetrics.gmailRowHeight - 6)
+    }
+
+    private func openGmail(_ message: GmailMessage) {
+        let urlString = message.link.isEmpty ? "https://mail.google.com/mail/u/0/#inbox" : message.link
+        if let url = URL(string: urlString) { NSWorkspace.shared.open(url) }
     }
 
     private func musicSection(_ track: NowPlayingManager.Track) -> some View {
@@ -588,16 +702,29 @@ struct NotchView: View {
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.6))
                 Spacer()
+                Button { addApp() } label: {
+                    Label("Uygulama", systemImage: "plus.app")
+                        .font(.system(size: 10))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.white.opacity(0.6))
                 Button { shelf.clear() } label: {
                     Text("Temizle").font(.system(size: 10))
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.white.opacity(0.5))
             }
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(shelf.items, id: \.self) { url in
-                        shelfChip(url)
+            if shelf.items.isEmpty {
+                Text("Dosya sürükle ya da ＋ ile uygulama ekle")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.white.opacity(0.35))
+                    .frame(maxWidth: .infinity, alignment: .center)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(shelf.items, id: \.self) { url in
+                            shelfChip(url)
+                        }
                     }
                 }
             }

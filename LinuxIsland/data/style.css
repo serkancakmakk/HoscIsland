@@ -84,6 +84,16 @@
   font-feature-settings: "tnum";
 }
 
+/* Gmail unread badge. */
+.badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: #ffffff;
+  background: rgba(230, 60, 60, 0.85);
+  border-radius: 9px;
+  padding: 0 6px;
+}
+
 /* File shelf chips. */
 .shelf .chip {
   padding: 2px 6px;

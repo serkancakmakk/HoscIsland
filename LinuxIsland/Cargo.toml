@@ -21,6 +21,11 @@ notify = "6"             # inotify screenshot watching
 serde = { version = "1", features = ["derive"] }
 toml = "0.8"
 
+# Gmail: HTTPS Atom feed (blocking, rustls) + XML parse + Basic-auth encoding.
+ureq = { version = "2", features = ["tls"] }
+quick-xml = "0.31"
+base64 = "0.22"
+
 [[bin]]
 name = "linux-island"
 path = "src/main.rs"

@@ -75,6 +75,15 @@ fn build_ui(app: &Application) {
     window.set_exclusive_zone(0);
     window.set_keyboard_mode(KeyboardMode::None);
     window.add_css_class("island-window");
+    // When movable is first enabled, seed a roughly-centered horizontal offset so
+    // anchoring Left doesn't snap the island to the top-left corner.
+    {
+        let mut s = settings.borrow_mut();
+        if s.movable && s.offset_x == 0 && s.offset_y == 0 {
+            s.offset_x = ((primary_monitor_width() - geometry::COLLAPSED_WIDTH) / 2).max(0);
+            s.save();
+        }
+    }
     apply_offset(&window, &settings.borrow());
 
     // --- Build the island ---
@@ -91,14 +100,24 @@ fn build_ui(app: &Application) {
     start_services(&view, &settings, commands);
 }
 
-/// Apply the saved drag offset as layer-shell margins. When movable, also anchor
-/// Left so the island can be moved horizontally; otherwise it stays centered.
+/// Apply the saved drag offset as layer-shell margins. When movable, anchor Left
+/// too so `offset_x` becomes an absolute horizontal position (seeded to center on
+/// first enable); otherwise the island stays compositor-centered.
 fn apply_offset(window: &ApplicationWindow, settings: &Settings) {
     window.set_margin(Edge::Top, geometry::BASE_TOP_MARGIN + settings.offset_y);
     if settings.movable {
         window.set_anchor(Edge::Left, true);
         window.set_margin(Edge::Left, settings.offset_x.max(0));
     }
+}
+
+/// Width of the primary monitor in logical px (fallback 1920).
+fn primary_monitor_width() -> i32 {
+    gdk::Display::default()
+        .and_then(|d| d.monitors().item(0))
+        .and_downcast::<gdk::Monitor>()
+        .map(|m| m.geometry().width())
+        .unwrap_or(1920)
 }
 
 /// Drag-to-move: update the layer-shell margins live and persist on release.
@@ -205,6 +224,53 @@ fn start_services(
                     v2.hide_screenshot();
                 }
             });
+        });
+    }
+
+    // Clipboard history.
+    {
+        let v = view.clone();
+        services::clipboard::start(move |items| v.clipboard.set_items(items));
+    }
+
+    // Device/volume event flashes.
+    {
+        let flash = banner_flasher(view.clone(), 4);
+        services::devices::start(move |title, name| {
+            flash(Notification { app: format!("🔌 {title}"), summary: name, body: String::new() });
+        });
+    }
+
+    // Gmail (reads on next launch after connecting in settings).
+    if settings.borrow().gmail_connected() {
+        if let (Some(email), Some(pass)) =
+            (settings.borrow().gmail_email.clone(), Settings::gmail_password())
+        {
+            let v = view.clone();
+            let flash = banner_flasher(view.clone(), 5);
+            services::gmail::start(email, pass, move |update| {
+                v.gmail.set(update.unread, update.messages);
+                for m in update.new {
+                    flash(Notification { app: "📧 Gmail".into(), summary: m.author, body: m.title });
+                }
+            });
+        }
+    }
+}
+
+/// Returns a closure that shows a transient banner for `secs`, superseding the
+/// previous one via a token (so a stale clear can't hide a newer banner).
+fn banner_flasher(view: IslandView, secs: u64) -> impl Fn(Notification) {
+    let token = Rc::new(Cell::new(0u64));
+    move |note: Notification| {
+        view.set_notification(Some(&note));
+        let id = token.get().wrapping_add(1);
+        token.set(id);
+        let (v2, t2) = (view.clone(), token.clone());
+        glib::timeout_add_local_once(Duration::from_secs(secs), move || {
+            if t2.get() == id {
+                v2.set_notification(None);
+            }
         });
     }
 }

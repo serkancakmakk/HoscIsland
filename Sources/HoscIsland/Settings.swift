@@ -14,6 +14,37 @@ enum InteractionMode: String, CaseIterable {
     }
 }
 
+/// Hover open/close timing — how eagerly the island reacts to the cursor.
+enum HoverSensitivity: String, CaseIterable {
+    case fast      // opens instantly, closes quickly
+    case normal
+    case relaxed   // small open delay, lingers before closing
+
+    var label: String {
+        switch self {
+        case .fast: return "Anında"
+        case .normal: return "Normal"
+        case .relaxed: return "Rahat"
+        }
+    }
+    /// Delay before opening on hover.
+    var openDelay: TimeInterval {
+        switch self {
+        case .fast: return 0
+        case .normal: return 0.12
+        case .relaxed: return 0.30
+        }
+    }
+    /// Delay before collapsing after the cursor leaves.
+    var closeDelay: TimeInterval {
+        switch self {
+        case .fast: return 0.12
+        case .normal: return 0.18
+        case .relaxed: return 0.45
+        }
+    }
+}
+
 /// How the battery indicator behaves.
 enum BatteryMode: String, CaseIterable {
     case off        // never show
@@ -40,13 +71,20 @@ final class Settings: ObservableObject {
     private let musicKey = "showMusic"
     private let batteryKey = "batteryMode"
     private let interactionKey = "interactionMode"
+    private let hoverKey = "hoverSensitivity"
     private let movableKey = "movableNotch"
     private let offsetXKey = "notchOffsetX"
     private let offsetYKey = "notchOffsetY"
+    private let gmailKey = "gmailEmail"
 
     /// Whether the island opens on hover or on click.
     @Published var interactionMode: InteractionMode {
         didSet { defaults.set(interactionMode.rawValue, forKey: interactionKey) }
+    }
+
+    /// Hover open/close timing.
+    @Published var hoverSensitivity: HoverSensitivity {
+        didSet { defaults.set(hoverSensitivity.rawValue, forKey: hoverKey) }
     }
 
     /// Whether to show the WhatsApp unread-message count badge in the notch.
@@ -92,6 +130,28 @@ final class Settings: ObservableObject {
         }
     }
 
+    /// Connected Gmail address (the app password lives in the Keychain). `nil`
+    /// when not connected.
+    @Published private(set) var gmailEmail: String? {
+        didSet {
+            if let e = gmailEmail { defaults.set(e, forKey: gmailKey) }
+            else { defaults.removeObject(forKey: gmailKey) }
+        }
+    }
+
+    var gmailConnected: Bool { gmailEmail != nil }
+
+    func connectGmail(email: String, appPassword: String) {
+        let trimmed = email.trimmingCharacters(in: .whitespaces)
+        Keychain.set(appPassword, account: trimmed)
+        gmailEmail = trimmed
+    }
+
+    func disconnectGmail() {
+        if let e = gmailEmail { Keychain.delete(account: e) }
+        gmailEmail = nil
+    }
+
     /// The CGDirectDisplayID the island should appear on.
     /// `nil` means "automatic" (prefer the screen with the notch).
     @Published var selectedDisplayID: CGDirectDisplayID? {
@@ -115,7 +175,9 @@ final class Settings: ObservableObject {
         showMusic = (defaults.object(forKey: musicKey) as? Bool) ?? true
         batteryMode = BatteryMode(rawValue: defaults.string(forKey: batteryKey) ?? "") ?? .onChange
         interactionMode = InteractionMode(rawValue: defaults.string(forKey: interactionKey) ?? "") ?? .hover
+        hoverSensitivity = HoverSensitivity(rawValue: defaults.string(forKey: hoverKey) ?? "") ?? .normal
         movableNotch = (defaults.object(forKey: movableKey) as? Bool) ?? false
+        gmailEmail = defaults.string(forKey: gmailKey)
         launchAtLogin = LoginItem.isEnabled
     }
 

@@ -13,7 +13,7 @@ use gtk::glib;
 use gtk::glib::clone;
 use gtk::prelude::*;
 
-use crate::geometry::{COLLAPSE_DEBOUNCE_MS, SWIPE_THRESHOLD};
+use crate::geometry::SWIPE_THRESHOLD;
 
 /// Callbacks the controller wires up — semantic intents, not GTK details.
 pub struct Handlers {
@@ -23,11 +23,19 @@ pub struct Handlers {
     pub on_previous: Box<dyn Fn()>,
 }
 
-/// Attach hover (expand/collapse with debounce), horizontal scroll (swipe), and —
-/// in click mode — a click-to-open gesture. In click mode hover does not expand.
-pub fn attach(widget: &gtk::Box, handlers: Handlers, click_mode: bool) {
+/// Hover timing (ms) — open delay and close (collapse) delay.
+#[derive(Clone, Copy)]
+pub struct HoverTiming {
+    pub open_ms: u64,
+    pub close_ms: u64,
+}
+
+/// Attach hover (expand/collapse with configurable delays), horizontal scroll
+/// (swipe), and — in click mode — a click-to-open gesture. In click mode hover
+/// does not expand.
+pub fn attach(widget: &gtk::Box, handlers: Handlers, click_mode: bool, timing: HoverTiming) {
     let handlers = Rc::new(handlers);
-    attach_hover(widget, handlers.clone(), click_mode);
+    attach_hover(widget, handlers.clone(), click_mode, timing);
     attach_swipe(widget, handlers.clone());
     if click_mode {
         let click = gtk::GestureClick::new();
@@ -36,33 +44,39 @@ pub fn attach(widget: &gtk::Box, handlers: Handlers, click_mode: bool) {
     }
 }
 
-fn attach_hover(widget: &gtk::Box, handlers: Rc<Handlers>, click_mode: bool) {
-    // Holds the pending collapse timer so re-entry can cancel it.
+fn attach_hover(widget: &gtk::Box, handlers: Rc<Handlers>, click_mode: bool, timing: HoverTiming) {
+    // Pending open/collapse timers, so re-entry/leave can cancel each other.
+    let open_src: Rc<RefCell<Option<glib::SourceId>>> = Rc::new(RefCell::new(None));
     let collapse_src: Rc<RefCell<Option<glib::SourceId>>> = Rc::new(RefCell::new(None));
     let motion = gtk::EventControllerMotion::new();
 
     motion.connect_enter(clone!(
-        @strong handlers, @strong collapse_src => move |_, _, _| {
-            if let Some(id) = collapse_src.borrow_mut().take() {
-                id.remove();
-            }
-            // Hover-open only in hover mode; in click mode the tap opens it.
-            if !click_mode {
+        @strong handlers, @strong open_src, @strong collapse_src => move |_, _, _| {
+            if let Some(id) = collapse_src.borrow_mut().take() { id.remove(); }
+            if click_mode { return; }  // tap opens it in click mode
+            // Hover-open after the configured delay (instant when 0).
+            if timing.open_ms == 0 {
                 (handlers.on_expand)();
+            } else if open_src.borrow().is_none() {
+                let handlers = handlers.clone();
+                let slot = open_src.clone();
+                let id = glib::timeout_add_local_once(
+                    Duration::from_millis(timing.open_ms),
+                    move || { *slot.borrow_mut() = None; (handlers.on_expand)(); },
+                );
+                *open_src.borrow_mut() = Some(id);
             }
         }
     ));
 
     motion.connect_leave(clone!(
-        @strong handlers, @strong collapse_src => move |_| {
+        @strong handlers, @strong open_src, @strong collapse_src => move |_| {
+            if let Some(id) = open_src.borrow_mut().take() { id.remove(); }
             let handlers = handlers.clone();
             let slot = collapse_src.clone();
             let id = glib::timeout_add_local_once(
-                Duration::from_millis(COLLAPSE_DEBOUNCE_MS),
-                move || {
-                    *slot.borrow_mut() = None;
-                    (handlers.on_collapse)();
-                },
+                Duration::from_millis(timing.close_ms),
+                move || { *slot.borrow_mut() = None; (handlers.on_collapse)(); },
             );
             *collapse_src.borrow_mut() = Some(id);
         }

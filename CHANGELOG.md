@@ -2,6 +2,58 @@
 
 Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Boring Notch tarzı).
 
+## [1.27.0] — 2026-06-27
+### Eklendi
+- **LinuxIsland parite — pano + olay flaşı + Gmail**: macOS'taki üç özellik Linux'a
+  da eklendi —
+  - **Pano geçmişi**: `wl-paste` poll + `wl-copy` ile geri kopyala (`services/clipboard.rs`).
+  - **Olay flaşları**: GIO `VolumeMonitor` ile disk bağlanma/çıkarılma banner'ı (`services/devices.rs`).
+  - **Gmail**: Atom feed (ureq + quick-xml), gönderen/konu listesi (tıkla → `xdg-open`),
+    yeni postada banner; e-posta config'te, şifre `~/.config/linux-island/gmail-pass` (0600).
+
+## [1.26.0] — 2026-06-27
+### Eklendi
+- **Gmail bağlama** 📧 (macOS): Ayarlar → *Gmail* bölümünden e-posta + **Uygulama
+  Şifresi** ile bağlanılır. Gelen okunmamışlar adada **gönderen + konu** olarak
+  listelenir (tıkla → tarayıcıda aç), yeni posta gelince **banner** çakar,
+  okunmamış sayısı rozetlenir. Atom feed (OAuth/Google Cloud gerektirmez); şifre
+  **Keychain**'de saklanır, yalnızca başlıklar okunur.
+  - _Linux karşılığı sırada._
+
+## [1.25.0] — 2026-06-27
+### Eklendi
+- **Pano geçmişi** 📋 (macOS): Son kopyalanan metinler açık adada şerit halinde;
+  tıkla → geri kopyala, Temizle. _(Linux sırada.)_
+- **Olay flaşları** 🔌 (macOS): Disk/çıkarılabilir aygıt bağlanıp çıkarılınca
+  notch'ta kısa bildirim. _(Linux sırada.)_
+
+## [1.24.0] — 2026-06-27
+### Eklendi
+- **Rafa uygulama ekleme** 📲 (her iki platform): Raf artık uygulamaları da tutar —
+  ikonuyla görünür, **tıklayınca uygulamayı başlatır**. Raf başlığına **＋ Uygulama**
+  butonu eklendi (macOS: /Applications seçici; Linux: `.desktop` seçici, `Name`/`Icon`
+  ayrıştırılır, `gio launch` ile başlatılır).
+- Raf artık ada açıkken **her zaman görünür** (boşken ipucu metni) → boş rafa da
+  uygulama/dosya eklenebilir.
+
+## [1.23.0] — 2026-06-27
+### Değişti
+- **Ayarlar penceresi yeniden tasarlandı** (Alcove-tarzı yumuşak): yuvarlak kartlar,
+  renkli gradient ikon rozetleri, soft gölge, gradient zemin, gruplu bölümler.
+### Düzeltildi
+- **Taşınabilir ada artık gerçekten taşınıyor** (macOS): `isMovableByWindowBackground`
+  SwiftUI içeriğiyle çalışmıyordu; taşıma **açık sürükleme** ile yeniden yazıldı —
+  adanın **üst (notch) şeridinden** tutulur, alttaki kontrollerle çakışmaz, ada
+  **ekran dışına kaçamaz** (clamp). **Sıfırla** artık aç/kapa anahtarının yanında
+  her zaman görünür.
+
+## [1.22.0] — 2026-06-27
+### Eklendi
+- **Hover hassasiyeti** 👋 (her iki platform): Ayarlar → **Anında / Normal / Rahat**.
+  Açılma gecikmesi + kapanma süresini ayarlar (interaction monitörü / GTK motion).
+- **LinuxIsland taşınabilir ada tamamlandı**: `movable` açılınca köşeye sıçrama
+  düzeltildi (ilk açılışta yatay merkeze yerleşir, sonra sürüklenir).
+
 ## [1.21.0] — 2026-06-26
 ### Eklendi
 - **Pomodoro zamanlayıcı** ⏲️ (her iki platform): Boştaki (müzik yokken)
@@ -223,7 +275,7 @@ Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Borin
       şık bir gösterge.
 - [x] 📸 **Ekran görüntüsü önizleme** — notch'ta önizleme + kopyala/Finder/sil.
       ✅ (1.10.0)
-- [ ] 🔌 **Anlık olay flaşları** — şarja takma, cihaz bağlanma vb. kısa bildirimler.
+- [x] 🔌 **Anlık olay flaşları** — disk/aygıt bağlanma kısa bildirimleri. ✅ (1.25.0, macOS)
 
 ### 📁 Dosya Rafı (Shelf)
 - [x] 📁 **Sürükle-bırak tepsi** — notch'a bırakılan dosyalar için raf. ✅ (1.11.0)
@@ -242,14 +294,13 @@ Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Borin
       geçiş). _Planlandı; henüz eklenmedi._
 - [ ] 📅 **Takvim / sıradaki etkinlik** — boştaki notch'ta sonraki toplantı.
 - [x] ⏲️ **Zamanlayıcı / Pomodoro** — boştaki kartta 25 dk sayaç. ✅ (1.21.0)
-- [ ] 📋 **Pano geçmişi** — son kopyalananlara hızlı erişim.
+- [x] 📋 **Pano geçmişi** — son kopyalananlara hızlı erişim. ✅ (1.25.0, macOS)
 - [ ] 🌤️ **Hava durumu** — özetlenmiş günlük durum.
 
 ### 🎨 Özelleştirme & Davranış
 - [ ] 🎨 **Görünüm ayarları** — ada boyutu, köşe yarıçapı, renk/tema
       (`NotchMetrics` parametreleştirme + `SettingsView` sekmesi).
-- [ ] 👋 **Hover hassasiyeti** — açılma gecikmesi / kapanma süresi ayarı
-      (`NotchController` hover zamanlayıcıları).
+- [x] 👋 **Hover hassasiyeti** — açılma gecikmesi / kapanma süresi ayarı. ✅ (1.22.0)
 - [ ] 🖱️ **Etkileşim modu** — hover yerine "tıkla-aç" seçeneği.
 - [x] 🚀 **Açılışta otomatik başlat** — `SMAppService` (Login Item) + ayar anahtarı. ✅ (1.20.0)
 

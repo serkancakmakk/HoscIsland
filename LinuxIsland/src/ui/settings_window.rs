@@ -10,7 +10,7 @@ use std::rc::Rc;
 use gtk::glib::clone;
 use gtk::prelude::*;
 
-use crate::settings::{BatteryMode, InteractionMode, Settings};
+use crate::settings::{BatteryMode, HoverSensitivity, InteractionMode, Settings};
 
 pub fn show(settings: Rc<RefCell<Settings>>) {
     let win = gtk::Window::builder()
@@ -51,6 +51,30 @@ pub fn show(settings: Rc<RefCell<Settings>>) {
         crate::autostart::set(on);
     }));
 
+    // Hover sensitivity dropdown.
+    let hover_row = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+    hover_row.append(&gtk::Label::new(Some("Hover hassasiyeti")));
+    let hspacer = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+    hspacer.set_hexpand(true);
+    hover_row.append(&hspacer);
+    let hdd = gtk::DropDown::from_strings(&["Anında", "Normal", "Rahat"]);
+    hdd.set_selected(match s.hover_sensitivity {
+        HoverSensitivity::Fast => 0,
+        HoverSensitivity::Normal => 1,
+        HoverSensitivity::Relaxed => 2,
+    });
+    hdd.connect_selected_notify(clone!(@strong settings => move |dd| {
+        let v = match dd.selected() {
+            0 => HoverSensitivity::Fast,
+            2 => HoverSensitivity::Relaxed,
+            _ => HoverSensitivity::Normal,
+        };
+        settings.borrow_mut().hover_sensitivity = v;
+        settings.borrow().save();
+    }));
+    hover_row.append(&hdd);
+    root.append(&hover_row);
+
     // Battery mode dropdown.
     let battery_row = gtk::Box::new(gtk::Orientation::Horizontal, 8);
     battery_row.append(&gtk::Label::new(Some("Pil göstergesi")));
@@ -75,7 +99,41 @@ pub fn show(settings: Rc<RefCell<Settings>>) {
     battery_row.append(&dd);
     root.append(&battery_row);
 
-    root.append(&gtk::Label::new(Some("Bazı ayarlar bir sonraki açılışta tam etkili olur.")));
+    // Gmail.
+    root.append(&heading("Gmail"));
+    if s.gmail_connected() {
+        let row = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+        let lbl = gtk::Label::new(Some(&format!("Bağlı: {}", s.gmail_email.clone().unwrap_or_default())));
+        lbl.set_hexpand(true);
+        lbl.set_xalign(0.0);
+        let disconnect = gtk::Button::with_label("Kaldır");
+        disconnect.connect_clicked(clone!(@strong settings => move |_| {
+            settings.borrow_mut().disconnect_gmail();
+        }));
+        row.append(&lbl);
+        row.append(&disconnect);
+        root.append(&row);
+    } else {
+        let email = gtk::Entry::new();
+        email.set_placeholder_text(Some("ornek@gmail.com"));
+        let pass = gtk::Entry::new();
+        pass.set_placeholder_text(Some("Uygulama şifresi (16 hane)"));
+        pass.set_visibility(false);
+        let connect = gtk::Button::with_label("Bağla");
+        connect.connect_clicked(clone!(@strong settings, @strong email, @strong pass => move |_| {
+            let e = email.text().to_string();
+            let p = pass.text().to_string();
+            if !e.trim().is_empty() && !p.trim().is_empty() {
+                settings.borrow_mut().connect_gmail(e, p);
+                pass.set_text("");
+            }
+        }));
+        root.append(&email);
+        root.append(&pass);
+        root.append(&connect);
+    }
+
+    root.append(&gtk::Label::new(Some("Gmail için 2FA + Uygulama Şifresi gerekir. Ayarları değiştirince uygulamayı yeniden başlat.")));
 
     win.set_child(Some(&root));
     win.present();
