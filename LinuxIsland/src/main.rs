@@ -271,6 +271,12 @@ fn start_services(
         services::devices_battery::start(move |devs| v.devices.set(devs));
     }
 
+    // Recent downloads quick-access.
+    {
+        let v = view.clone();
+        services::downloads::start(move |files| v.downloads.set(files));
+    }
+
     // Brightness/volume HUD.
     {
         let v = view.clone();

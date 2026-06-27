@@ -11,6 +11,7 @@ enum NotchMetrics {
     static let windowsRowHeight: CGFloat = 64
     static let notifRowHeight: CGFloat = 88
     static let devicesRowHeight: CGFloat = 56
+    static let downloadsRowHeight: CGFloat = 70
     /// Fixed-height scrollable drawer holding the secondary sections.
     static let drawerHeight: CGFloat = 172
     static let expandedWidth: CGFloat = 420
@@ -230,6 +231,7 @@ struct NotchView: View {
     @ObservedObject var windows: WindowsManager
     @ObservedObject var lyrics: LyricsManager
     @ObservedObject var deviceBattery: DeviceBatteryManager
+    @ObservedObject var downloads: DownloadsManager
     @ObservedObject private var settings = Settings.shared
     @EnvironmentObject var state: NotchState
     let notchWidth: CGFloat
@@ -628,6 +630,7 @@ struct NotchView: View {
             VStack(spacing: 12) {
                 if !windows.windows.isEmpty { windowsStrip }
                 if !deviceBattery.devices.isEmpty { devicesStrip }
+                if !downloads.items.isEmpty { downloadsStrip }
                 if !state.notificationHistory.isEmpty { notificationsStrip }
                 if gmail.connected, !gmail.messages.isEmpty { gmailStrip }
                 if !clipboard.items.isEmpty { clipboardStrip }
@@ -749,6 +752,36 @@ struct NotchView: View {
     private func openGmail(_ message: GmailMessage) {
         let urlString = message.link.isEmpty ? "https://mail.google.com/mail/u/0/#inbox" : message.link
         if let url = URL(string: urlString) { NSWorkspace.shared.open(url) }
+    }
+
+    /// Most recent files from ~/Downloads — click to open, drag out, reveal.
+    private var downloadsStrip: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Label("İndirilenler", systemImage: "arrow.down.circle")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.6))
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(downloads.items, id: \.self) { url in
+                        VStack(spacing: 3) {
+                            Image(nsImage: ShelfStore.icon(for: url))
+                                .resizable().frame(width: 30, height: 30)
+                            Text(url.lastPathComponent)
+                                .font(.system(size: 8))
+                                .foregroundStyle(.white.opacity(0.7))
+                                .lineLimit(1)
+                                .frame(width: 54)
+                        }
+                        .padding(6)
+                        .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.08)))
+                        .onTapGesture { NSWorkspace.shared.open(url) }
+                        .onDrag { NSItemProvider(contentsOf: url) ?? NSItemProvider() }
+                        .help(url.lastPathComponent)
+                    }
+                }
+            }
+        }
+        .frame(height: NotchMetrics.downloadsRowHeight - 14)
     }
 
     /// Connected accessory batteries (AirPods / Magic Mouse / keyboard …).
