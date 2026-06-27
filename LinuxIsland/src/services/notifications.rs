@@ -43,12 +43,10 @@ async fn run<F: Fn(Notification) + 'static>(on_notify: F) -> zbus::Result<()> {
         .path("/org/freedesktop/DBus")?
         .build()
         .await?;
-    monitor
-        .become_monitor(
-            &["interface='org.freedesktop.Notifications',member='Notify'"],
-            0,
-        )
-        .await?;
+    let rule = zbus::MatchRule::try_from(
+        "type='method_call',interface='org.freedesktop.Notifications',member='Notify'",
+    )?;
+    monitor.become_monitor(&[rule], 0).await?;
 
     let mut stream = MessageStream::from(conn);
     while let Some(msg) = stream.next().await {

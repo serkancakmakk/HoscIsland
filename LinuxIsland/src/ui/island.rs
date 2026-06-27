@@ -10,6 +10,7 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use gtk::gdk;
+use gtk::glib;
 use gtk::glib::clone;
 use gtk::prelude::*;
 
