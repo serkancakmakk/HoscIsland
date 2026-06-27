@@ -29,6 +29,16 @@ struct HUDInfo: Equatable {
     static func == (l: HUDInfo, r: HUDInfo) -> Bool { l.id == r.id }
 }
 
+/// A past notification kept in the expanded card's history list.
+struct NotchHistoryItem: Identifiable, Equatable {
+    let id = UUID()
+    var icon: NSImage?
+    var sender: String
+    var message: String
+    var date: Date
+    static func == (l: NotchHistoryItem, r: NotchHistoryItem) -> Bool { l.id == r.id }
+}
+
 /// A screenshot preview with quick actions.
 struct ScreenshotPreview: Equatable {
     let id = UUID()
@@ -49,6 +59,8 @@ final class NotchState: ObservableObject {
     @Published var batteryPlugged: Bool = false
     @Published var screenshot: ScreenshotPreview?
     @Published var hud: HUDInfo?
+    /// Recent notifications, newest first, for the expanded card's history list.
+    @Published var notificationHistory: [NotchHistoryItem] = []
     /// Cursor is over the collapsed notch (used for the click-mode hover nudge).
     @Published var hovering: Bool = false
     var whatsAppIcon: NSImage?

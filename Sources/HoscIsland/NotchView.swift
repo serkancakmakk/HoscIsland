@@ -9,6 +9,8 @@ enum NotchMetrics {
     static let clipRowHeight: CGFloat = 40
     static let gmailRowHeight: CGFloat = 78
     static let windowsRowHeight: CGFloat = 64
+    static let notifRowHeight: CGFloat = 88
+    static let devicesRowHeight: CGFloat = 56
     /// Fixed-height scrollable drawer holding the secondary sections.
     static let drawerHeight: CGFloat = 172
     static let expandedWidth: CGFloat = 420
@@ -227,6 +229,7 @@ struct NotchView: View {
     @ObservedObject var weather: WeatherManager
     @ObservedObject var windows: WindowsManager
     @ObservedObject var lyrics: LyricsManager
+    @ObservedObject var deviceBattery: DeviceBatteryManager
     @ObservedObject private var settings = Settings.shared
     @EnvironmentObject var state: NotchState
     let notchWidth: CGFloat
@@ -624,6 +627,8 @@ struct NotchView: View {
         ScrollView(.vertical, showsIndicators: true) {
             VStack(spacing: 12) {
                 if !windows.windows.isEmpty { windowsStrip }
+                if !deviceBattery.devices.isEmpty { devicesStrip }
+                if !state.notificationHistory.isEmpty { notificationsStrip }
                 if gmail.connected, !gmail.messages.isEmpty { gmailStrip }
                 if !clipboard.items.isEmpty { clipboardStrip }
                 shelfStrip   // always present (its + button adds apps/files)
@@ -744,6 +749,85 @@ struct NotchView: View {
     private func openGmail(_ message: GmailMessage) {
         let urlString = message.link.isEmpty ? "https://mail.google.com/mail/u/0/#inbox" : message.link
         if let url = URL(string: urlString) { NSWorkspace.shared.open(url) }
+    }
+
+    /// Connected accessory batteries (AirPods / Magic Mouse / keyboard …).
+    private var devicesStrip: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Label("Cihazlar", systemImage: "battery.100.bolt")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.6))
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(deviceBattery.devices) { dev in
+                        HStack(spacing: 6) {
+                            Image(systemName: dev.symbol)
+                                .font(.system(size: 14))
+                                .foregroundStyle(.white.opacity(0.8))
+                            VStack(alignment: .leading, spacing: 0) {
+                                Text(dev.name)
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundStyle(.white.opacity(0.9)).lineLimit(1)
+                                Text("\(dev.percentage)%")
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(dev.percentage <= 20 ? .red : .white.opacity(0.55))
+                            }
+                        }
+                        .padding(.horizontal, 9).padding(.vertical, 5)
+                        .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.06)))
+                    }
+                }
+            }
+        }
+        .frame(height: NotchMetrics.devicesRowHeight - 6)
+    }
+
+    /// Recent notifications (newest first), with the sending app's icon + a "Temizle".
+    private var notificationsStrip: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Label("Bildirimler", systemImage: "bell.fill")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.6))
+                Spacer()
+                Button { state.notificationHistory.removeAll() } label: {
+                    Text("Temizle").font(.system(size: 10))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.white.opacity(0.5))
+            }
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 4) {
+                    ForEach(state.notificationHistory) { item in
+                        HStack(spacing: 7) {
+                            if let icon = item.icon {
+                                Image(nsImage: icon).resizable().frame(width: 22, height: 22)
+                            } else {
+                                Image(systemName: "app.fill").font(.system(size: 18))
+                                    .foregroundStyle(.white.opacity(0.5))
+                            }
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(item.sender)
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundStyle(.white.opacity(0.9)).lineLimit(1)
+                                if !item.message.isEmpty {
+                                    Text(item.message)
+                                        .font(.system(size: 9))
+                                        .foregroundStyle(.white.opacity(0.55)).lineLimit(1)
+                                }
+                            }
+                            Spacer(minLength: 0)
+                            Text(item.date, style: .relative)
+                                .font(.system(size: 8))
+                                .foregroundStyle(.white.opacity(0.4)).lineLimit(1)
+                        }
+                        .padding(.horizontal, 8).padding(.vertical, 4)
+                        .background(RoundedRectangle(cornerRadius: 7).fill(Color.white.opacity(0.06)))
+                    }
+                }
+            }
+        }
+        .frame(height: NotchMetrics.notifRowHeight - 6)
     }
 
     private func musicSection(_ track: NowPlayingManager.Track) -> some View {

@@ -20,6 +20,7 @@ final class NotchController {
     private let weather = WeatherManager()
     private let windowsManager = WindowsManager()
     private let lyrics = LyricsManager()
+    private let deviceBattery = DeviceBatteryManager()
     private var geometry = NotchGeometry(notchWidth: 200, topInset: 38)
     private var cancellables = Set<AnyCancellable>()
 
@@ -65,6 +66,7 @@ final class NotchController {
         startSystemMonitor()
         weather.start()
         windowsManager.start()
+        deviceBattery.start()
         observeStateChanges()
     }
 
@@ -160,6 +162,12 @@ final class NotchController {
         let icon = appIcon(for: appID)
         state.whatsAppIcon = icon  // also the icon shown in the compact pill
         state.notification = NotchNotification(icon: icon, sender: sender, message: message)
+        // Keep a short rolling history for the expanded card (newest first, cap 12).
+        state.notificationHistory.insert(
+            NotchHistoryItem(icon: icon, sender: sender, message: message, date: Date()),
+            at: 0
+        )
+        if state.notificationHistory.count > 12 { state.notificationHistory.removeLast() }
 
         let clear = DispatchWorkItem { [weak self] in self?.state.notification = nil }
         notificationClearItem = clear
@@ -298,6 +306,7 @@ final class NotchController {
                 weather: weather,
                 windows: windowsManager,
                 lyrics: lyrics,
+                deviceBattery: deviceBattery,
                 notchWidth: geometry.notchWidth,
                 topInset: geometry.topInset,
                 isExpanded: Binding(

@@ -23,7 +23,9 @@ use crate::services::{screenshots, volume};
 use crate::settings::{InteractionMode, Settings};
 use crate::shelf::ShelfStore;
 use crate::ui::clipboard::ClipboardView;
+use crate::ui::devices::DevicesView;
 use crate::ui::gmail::GmailView;
+use crate::ui::notifications::NotificationsView;
 use crate::ui::settings_window;
 use crate::ui::shelf::ShelfView;
 use crate::ui::windows::WindowsView;
@@ -51,6 +53,8 @@ pub struct IslandView {
     pub clipboard: ClipboardView,
     pub gmail: GmailView,
     pub windows: WindowsView,
+    pub notifications: NotificationsView,
+    pub devices: DevicesView,
     top_row: gtk::Box,
     hud_box: gtk::Box,
     hud_icon: gtk::Image,
@@ -355,6 +359,10 @@ pub fn build(
     let drawer_inner = gtk::Box::new(gtk::Orientation::Vertical, 10);
     let windows = WindowsView::build();
     drawer_inner.append(&windows.container);
+    let devices = DevicesView::build();
+    drawer_inner.append(&devices.container);
+    let notifications = NotificationsView::build();
+    drawer_inner.append(&notifications.container);
     let gmail = GmailView::build();
     drawer_inner.append(&gmail.container);
     let clipboard = ClipboardView::build();
@@ -392,6 +400,8 @@ pub fn build(
         clipboard: clipboard.clone(),
         gmail: gmail.clone(),
         windows: windows.clone(),
+        notifications: notifications.clone(),
+        devices: devices.clone(),
         top_row: top.clone(),
         hud_box: hud_box.clone(),
         hud_icon: hud_icon.clone(),

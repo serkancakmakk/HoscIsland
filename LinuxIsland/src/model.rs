@@ -33,6 +33,14 @@ pub struct Battery {
     pub charging: bool,
 }
 
+/// A connected accessory's battery (Bluetooth mouse / keyboard / headset).
+/// macOS counterpart: `DeviceBattery` (read via `ioreg`).
+#[derive(Clone, Debug, PartialEq)]
+pub struct DeviceBattery {
+    pub name: String,
+    pub percentage: u8,
+}
+
 /// A transient notification banner (from org.freedesktop.Notifications).
 #[derive(Clone, Debug, PartialEq)]
 pub struct Notification {
