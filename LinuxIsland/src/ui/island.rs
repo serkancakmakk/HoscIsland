@@ -24,6 +24,7 @@ use crate::settings::{InteractionMode, Settings};
 use crate::shelf::ShelfStore;
 use crate::ui::clipboard::ClipboardView;
 use crate::ui::devices::DevicesView;
+use crate::ui::downloads::DownloadsView;
 use crate::ui::gmail::GmailView;
 use crate::ui::notifications::NotificationsView;
 use crate::ui::settings_window;
@@ -55,6 +56,7 @@ pub struct IslandView {
     pub windows: WindowsView,
     pub notifications: NotificationsView,
     pub devices: DevicesView,
+    pub downloads: DownloadsView,
     top_row: gtk::Box,
     hud_box: gtk::Box,
     hud_icon: gtk::Image,
@@ -361,6 +363,8 @@ pub fn build(
     drawer_inner.append(&windows.container);
     let devices = DevicesView::build();
     drawer_inner.append(&devices.container);
+    let downloads = DownloadsView::build();
+    drawer_inner.append(&downloads.container);
     let notifications = NotificationsView::build();
     drawer_inner.append(&notifications.container);
     let gmail = GmailView::build();
@@ -402,6 +406,7 @@ pub fn build(
         windows: windows.clone(),
         notifications: notifications.clone(),
         devices: devices.clone(),
+        downloads: downloads.clone(),
         top_row: top.clone(),
         hud_box: hud_box.clone(),
         hud_icon: hud_icon.clone(),

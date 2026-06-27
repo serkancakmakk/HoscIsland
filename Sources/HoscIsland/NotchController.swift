@@ -21,6 +21,7 @@ final class NotchController {
     private let windowsManager = WindowsManager()
     private let lyrics = LyricsManager()
     private let deviceBattery = DeviceBatteryManager()
+    private let downloads = DownloadsManager()
     private var geometry = NotchGeometry(notchWidth: 200, topInset: 38)
     private var cancellables = Set<AnyCancellable>()
 
@@ -67,6 +68,7 @@ final class NotchController {
         weather.start()
         windowsManager.start()
         deviceBattery.start()
+        downloads.start()
         observeStateChanges()
     }
 
@@ -307,6 +309,7 @@ final class NotchController {
                 windows: windowsManager,
                 lyrics: lyrics,
                 deviceBattery: deviceBattery,
+                downloads: downloads,
                 notchWidth: geometry.notchWidth,
                 topInset: geometry.topInset,
                 isExpanded: Binding(

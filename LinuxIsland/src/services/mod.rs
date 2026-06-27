@@ -11,6 +11,7 @@ pub mod battery;
 pub mod clipboard;
 pub mod devices;
 pub mod devices_battery;
+pub mod downloads;
 pub mod gmail;
 pub mod hud;
 pub mod lyrics;

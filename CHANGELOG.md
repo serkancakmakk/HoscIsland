@@ -2,6 +2,14 @@
 
 Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Boring Notch tarzı).
 
+## [1.36.0] — 2026-06-27
+### Eklendi
+- **Son indirilenler** 🕑 (her iki platform): `~/Downloads` klasöründeki **en
+  yeni dosyalar** genişletilmiş kartın çekmecesinde ikon + adla listeleniyor —
+  **tıkla → aç**, **dışarı sürükle**. macOS'ta `FileManager` (Downloads dizini),
+  LinuxIsland'da `$XDG_DOWNLOAD_DIR` → sysfs yok, saf `std::fs`; tarayıcı yarım
+  indirmeleri (`.crdownload`/`.part`) elenir, 8 sn'de bir güncellenir.
+
 ## [1.35.0] — 2026-06-27
 ### Eklendi
 - **Bağlı cihaz pilleri** 🎧 (her iki platform): Bluetooth aksesuarlarının
@@ -336,7 +344,7 @@ Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Borin
 ### 📁 Dosya Rafı (Shelf)
 - [x] 📁 **Sürükle-bırak tepsi** — notch'a bırakılan dosyalar için raf. ✅ (1.11.0)
 - [ ] 📤 **Hızlı AirDrop / paylaşım** — raftaki dosyayı tek tıkla paylaşma.
-- [ ] 🕑 **Son indirilenler / SS otomatik toplama** — rafta hızlı erişim.
+- [x] 🕑 **Son indirilenler** — çekmecede ~/Downloads hızlı erişim. ✅ (1.36.0)
 
 ### 🔔 Bildirimler
 - [x] 📱 **Çok uygulamalı bildirim** — tüm uygulamalar + uygulama ikonu. ✅ (1.33.0)

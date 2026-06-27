@@ -2,6 +2,7 @@
 
 pub mod clipboard;
 pub mod devices;
+pub mod downloads;
 pub mod gmail;
 pub mod island;
 pub mod notifications;
