@@ -30,7 +30,6 @@ final class NotchController {
     private let notificationWatcher = NotificationWatcher()
     private let batteryMonitor = BatteryMonitor()
     private let screenshotWatcher = ScreenshotWatcher()
-    private var cachedWhatsAppIcon: NSImage?
     private var interaction: NotchInteractionMonitor!
 
     /// Low-battery warning: fire once when crossing below this while discharging.
@@ -140,13 +139,11 @@ final class NotchController {
         interaction = monitor
     }
 
-    // MARK: - WhatsApp notifications
+    // MARK: - App notifications (all apps)
 
     private func startNotificationWatcher() {
-        cachedWhatsAppIcon = notificationWatcher.loadAppIcon()
-        state.whatsAppIcon = cachedWhatsAppIcon
-        notificationWatcher.onNewNotification = { [weak self] sender, message in
-            self?.flashNotification(sender: sender, message: message)
+        notificationWatcher.onNewNotification = { [weak self] sender, message, appID in
+            self?.flashNotification(sender: sender, message: message, appID: appID)
         }
         notificationWatcher.$unreadCount
             .receive(on: RunLoop.main)
@@ -155,15 +152,26 @@ final class NotchController {
         notificationWatcher.start()
     }
 
-    /// Briefly show the incoming message as a banner, then clear it.
-    private func flashNotification(sender: String, message: String) {
+    /// Briefly show the incoming message as a banner (with the sending app's
+    /// icon), then clear it.
+    private func flashNotification(sender: String, message: String, appID: String) {
         guard Settings.shared.showNotifications else { return }
         notificationClearItem?.cancel()
-        state.notification = NotchNotification(icon: cachedWhatsAppIcon, sender: sender, message: message)
+        let icon = appIcon(for: appID)
+        state.whatsAppIcon = icon  // also the icon shown in the compact pill
+        state.notification = NotchNotification(icon: icon, sender: sender, message: message)
 
         let clear = DispatchWorkItem { [weak self] in self?.state.notification = nil }
         notificationClearItem = clear
         DispatchQueue.main.asyncAfter(deadline: .now() + 5.0, execute: clear)
+    }
+
+    private var iconCache: [String: NSImage] = [:]
+    private func appIcon(for appID: String) -> NSImage? {
+        if let cached = iconCache[appID] { return cached }
+        guard let icon = NotificationWatcher.icon(forBundleID: appID) else { return nil }
+        iconCache[appID] = icon
+        return icon
     }
 
     // MARK: - Screenshot preview

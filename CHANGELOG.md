@@ -2,6 +2,13 @@
 
 Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Boring Notch tarzı).
 
+## [1.33.0] — 2026-06-27
+### Değişti
+- **Çok-uygulamalı bildirim** 📱 (macOS): Bildirim banner'ı artık yalnız WhatsApp
+  değil **tüm uygulamaları** kapsıyor; gönderen + metin + **o uygulamanın ikonu**
+  gösteriliyor. (LinuxIsland zaten freedesktop monitörüyle tüm uygulamaları
+  gösteriyordu → parite tamam.)
+
 ## [1.32.0] — 2026-06-27
 ### Değişti
 - **Genişletilmiş kart toparlandı**: İkincil bölümler (açık pencereler, Gmail,
@@ -315,8 +322,7 @@ Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Borin
 - [ ] 🕑 **Son indirilenler / SS otomatik toplama** — rafta hızlı erişim.
 
 ### 🔔 Bildirimler
-- [ ] 📱 **Çok uygulamalı bildirim** — WhatsApp dışı uygulamalar için de
-      `NotificationWatcher` üzerinden genel destek (bundle eşleme listesi).
+- [x] 📱 **Çok uygulamalı bildirim** — tüm uygulamalar + uygulama ikonu. ✅ (1.33.0)
 - [ ] 📚 **Bildirim yığını / geçmiş** — son bildirimleri genişletilmiş kartta
       listeleme.
 

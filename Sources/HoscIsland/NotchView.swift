@@ -454,7 +454,7 @@ struct NotchView: View {
             HStack(spacing: 11) {
                 appIcon(notif.icon, size: 36)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(notif.sender.isEmpty ? "WhatsApp" : notif.sender)
+                    Text(notif.sender.isEmpty ? "Bildirim" : notif.sender)
                         .font(.system(size: 12.5, weight: .semibold))
                         .foregroundStyle(.white)
                         .lineLimit(1)

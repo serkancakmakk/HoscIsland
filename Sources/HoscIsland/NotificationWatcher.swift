@@ -3,26 +3,25 @@ import Combine
 import Foundation
 import SQLite3
 
-/// Watches macOS's Notification Center database for new notifications from a
-/// given app (WhatsApp by default) and fires a callback when one arrives.
+/// Watches macOS's Notification Center database for new notifications and fires a
+/// callback when one arrives. By default it matches **all apps**; pass a
+/// `bundleMatch` substring to restrict to one app.
 ///
 /// Reading this database requires **Full Disk Access** — the user must grant it
 /// in System Settings → Privacy & Security → Full Disk Access. Until then,
 /// `hasAccess` stays false.
 final class NotificationWatcher: ObservableObject {
-    /// Bundle-id substring to match (case-insensitive), e.g. "whatsapp".
-    private let bundleMatch: String
-    /// Bundle id used to load the app icon to display.
-    let appBundleID: String
+    /// Bundle-id substring to match (case-insensitive), or `nil` for all apps.
+    private let bundleMatch: String?
 
     @Published private(set) var hasAccess = false
-    /// Number of the app's notifications currently sitting in Notification Center
-    /// (drops back down as the user reads them) — used as an unread approximation.
+    /// Number of notifications currently sitting in Notification Center (drops as
+    /// the user reads them) — used as an unread approximation.
     @Published private(set) var unreadCount = 0
 
-    /// Called on the main thread when a new matching notification appears,
-    /// with the decoded sender (title) and message (body).
-    var onNewNotification: ((_ sender: String, _ message: String) -> Void)?
+    /// Called on the main thread when a new notification appears, with the decoded
+    /// sender (title), message (body), and originating app bundle id (for its icon).
+    var onNewNotification: ((_ sender: String, _ message: String, _ appID: String) -> Void)?
 
     private var timer: Timer?
     private var lastRecID: Double = -1
@@ -31,9 +30,19 @@ final class NotificationWatcher: ObservableObject {
 
     private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
-    init(bundleMatch: String = "whatsapp", appBundleID: String = "net.whatsapp.WhatsApp") {
+    init(bundleMatch: String? = nil) {
         self.bundleMatch = bundleMatch
-        self.appBundleID = appBundleID
+    }
+
+    /// `WHERE a.identifier LIKE ?` only when restricting to one app.
+    private var whereClause: String {
+        bundleMatch != nil ? "WHERE a.identifier LIKE ?" : ""
+    }
+
+    private func bindMatch(_ stmt: OpaquePointer?) {
+        if let bundleMatch {
+            sqlite3_bind_text(stmt, 1, "%\(bundleMatch)%", -1, SQLITE_TRANSIENT)
+        }
     }
 
     private var dbPath: String {
@@ -69,7 +78,7 @@ final class NotificationWatcher: ObservableObject {
         sqlite3_busy_timeout(db, 300)
         setAccess(true)
 
-        let join = "FROM record r JOIN app a ON r.app_id = a.app_id WHERE a.identifier LIKE ?"
+        let join = "FROM record r JOIN app a ON r.app_id = a.app_id \(whereClause)"
         let maxID = queryDouble(db, "SELECT MAX(r.rec_id) \(join);") ?? -1
         let maxDelivered = queryDouble(db, "SELECT MAX(r.delivered_date) \(join);") ?? -1
         let count = queryDouble(db, "SELECT COUNT(*) \(join);") ?? 0
@@ -91,43 +100,44 @@ final class NotificationWatcher: ObservableObject {
         if newRecord || reDelivered {
             lastRecID = max(lastRecID, maxID)
             lastDelivered = max(lastDelivered, maxDelivered)
-            let msg = latestMessage(db) ?? ("WhatsApp", "")
-            DispatchQueue.main.async { [weak self] in self?.onNewNotification?(msg.0, msg.1) }
+            let msg = latestMessage(db) ?? ("Bildirim", "", "")
+            DispatchQueue.main.async { [weak self] in self?.onNewNotification?(msg.0, msg.1, msg.2) }
         }
     }
 
-    /// Decode the sender (title) and message (body) of the newest matching
-    /// notification from its archived `data` blob (a binary property list).
-    private func latestMessage(_ db: OpaquePointer?) -> (String, String)? {
+    /// Decode the sender (title), message (body), and app id of the newest
+    /// matching notification from its archived `data` blob (a binary plist).
+    private func latestMessage(_ db: OpaquePointer?) -> (String, String, String)? {
         let sql = """
-        SELECT r.data FROM record r JOIN app a ON r.app_id = a.app_id
-        WHERE a.identifier LIKE ? ORDER BY r.delivered_date DESC, r.rec_id DESC LIMIT 1;
+        SELECT r.data, a.identifier FROM record r JOIN app a ON r.app_id = a.app_id
+        \(whereClause) ORDER BY r.delivered_date DESC, r.rec_id DESC LIMIT 1;
         """
         var stmt: OpaquePointer?
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return nil }
         defer { sqlite3_finalize(stmt) }
-        sqlite3_bind_text(stmt, 1, "%\(bundleMatch)%", -1, SQLITE_TRANSIENT)
+        bindMatch(stmt)
         guard sqlite3_step(stmt) == SQLITE_ROW,
               let blob = sqlite3_column_blob(stmt, 0) else { return nil }
         let length = Int(sqlite3_column_bytes(stmt, 0))
         let data = Data(bytes: blob, count: length)
+        let appID = sqlite3_column_text(stmt, 1).map { String(cString: $0) } ?? ""
 
         guard let plist = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil),
               let dict = plist as? [String: Any] else { return nil }
         // The notification request lives under "req"; titl/subt/body hold the text.
         let req = (dict["req"] as? [String: Any]) ?? dict
-        let title = (req["titl"] as? String) ?? "WhatsApp"
+        let title = (req["titl"] as? String) ?? "Bildirim"
         let subtitle = req["subt"] as? String
         let body = (req["body"] as? String) ?? ""
         let sender = [title, subtitle].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
-        return (sender.isEmpty ? "WhatsApp" : sender, body)
+        return (sender.isEmpty ? "Bildirim" : sender, body, appID)
     }
 
     private func queryDouble(_ db: OpaquePointer?, _ sql: String) -> Double? {
         var stmt: OpaquePointer?
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return nil }
         defer { sqlite3_finalize(stmt) }
-        sqlite3_bind_text(stmt, 1, "%\(bundleMatch)%", -1, SQLITE_TRANSIENT)
+        bindMatch(stmt)
         guard sqlite3_step(stmt) == SQLITE_ROW else { return nil }
         if sqlite3_column_type(stmt, 0) == SQLITE_NULL { return nil }
         return sqlite3_column_double(stmt, 0)
@@ -153,8 +163,9 @@ final class NotificationWatcher: ObservableObject {
 
     // MARK: - App icon
 
-    func loadAppIcon() -> NSImage? {
-        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: appBundleID) else {
+    static func icon(forBundleID appID: String) -> NSImage? {
+        guard !appID.isEmpty,
+              let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: appID) else {
             return nil
         }
         return NSWorkspace.shared.icon(forFile: url.path)

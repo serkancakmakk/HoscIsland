@@ -50,7 +50,7 @@ struct SettingsView: View {
                     insetDivider
                     toggleRow("music.note", .pink, "Müzik göstergesi", $settings.showMusic)
                     insetDivider
-                    toggleRow("message.fill", .green, "WhatsApp banner", $settings.showNotifications)
+                    toggleRow("message.fill", .green, "Bildirim banner'ı", $settings.showNotifications)
                     insetDivider
                     toggleRow("bell.badge.fill", .red, "Okunmamış rozeti", $settings.showUnreadCount)
                     insetDivider
