@@ -231,17 +231,19 @@ async fn track_from(proxy: &PlayerProxy<'_>) -> Option<Track> {
 }
 
 fn length_us(meta: &HashMap<String, OwnedValue>) -> i64 {
-    // `**v` derefs OwnedValue → Value (which is Clone); OwnedValue itself isn't.
+    // `**v` derefs OwnedValue → Value; Value clones via `try_clone` (fds can fail).
     meta.get("mpris:length")
-        .and_then(|v| i64::try_from((**v).clone()).ok())
+        .and_then(|v| (**v).try_clone().ok())
+        .and_then(|val| i64::try_from(val).ok())
         .unwrap_or(0)
 }
 
 fn string_value(meta: &HashMap<String, OwnedValue>, key: &str) -> Option<String> {
-    meta.get(key).and_then(|v| String::try_from((**v).clone()).ok())
+    let val = (**meta.get(key)?).try_clone().ok()?;
+    String::try_from(val).ok()
 }
 
 fn first_string_value(meta: &HashMap<String, OwnedValue>, key: &str) -> Option<String> {
-    let list = meta.get(key)?;
-    Vec::<String>::try_from((**list).clone()).ok()?.into_iter().next()
+    let val = (**meta.get(key)?).try_clone().ok()?;
+    Vec::<String>::try_from(val).ok()?.into_iter().next()
 }
