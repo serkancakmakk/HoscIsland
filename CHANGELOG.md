@@ -2,6 +2,23 @@
 
 Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Boring Notch tarzı).
 
+## [1.35.0] — 2026-06-27
+### Eklendi
+- **Bağlı cihaz pilleri** 🎧 (her iki platform): Bluetooth aksesuarlarının
+  (AirPods / Magic Mouse / klavye) şarjı genişletilmiş kartın çekmecesinde
+  **isim + yüzde** ile listeleniyor (%20 altı kırmızı). macOS'ta `ioreg`
+  (`BatteryPercent`), LinuxIsland'da sysfs `power_supply` (`scope=Device`)
+  okunur; **ek bağımlılık yok**, 60 sn'de bir güncellenir.
+
+## [1.34.0] — 2026-06-27
+### Eklendi
+- **Bildirim geçmişi** 📚 (her iki platform): Gelen bildirimler banner gibi
+  geçip kaybolmuyor; genişletilmiş kartın çekmecesinde **son 12 bildirim**
+  (yeni → eski) gönderen + metinle listeleniyor, **Temizle** ile sıfırlanıyor.
+  macOS'ta gönderen uygulamanın ikonu + bağıl zaman; LinuxIsland'da freedesktop
+  monitöründen gelen bildirimler aynı listeye düşüyor (olay/Gmail flaşları
+  geçmişe girmez).
+
 ## [1.33.0] — 2026-06-27
 ### Değişti
 - **Çok-uygulamalı bildirim** 📱 (macOS): Bildirim banner'ı artık yalnız WhatsApp
@@ -308,7 +325,7 @@ Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Borin
 ### 🔋 Pil & Güç
 - [x] 🔋 **Şarj göstergesi** — kablo takınca notch'ta pil + yüzde flash'ı. ✅ (1.8.0)
 - [x] ⚠️ **Düşük pil uyarısı** — eşik altına (%20) düşünce kısa uyarı. ✅ (1.19.0)
-- [ ] 🎧 **Bağlı cihaz pilleri** — AirPods / Magic Mouse / klavye şarj durumu.
+- [x] 🎧 **Bağlı cihaz pilleri** — AirPods / Magic Mouse / klavye şarj durumu. ✅ (1.35.0)
 
 ### 🖥️ Sistem HUD (yerine geçme)
 - [x] 🔆 **Parlaklık & ses HUD'u** — notch'ta ikon + bar göstergesi. ✅ (1.28.0)
@@ -323,8 +340,8 @@ Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Borin
 
 ### 🔔 Bildirimler
 - [x] 📱 **Çok uygulamalı bildirim** — tüm uygulamalar + uygulama ikonu. ✅ (1.33.0)
-- [ ] 📚 **Bildirim yığını / geçmiş** — son bildirimleri genişletilmiş kartta
-      listeleme.
+- [x] 📚 **Bildirim yığını / geçmiş** — son bildirimleri genişletilmiş kartta
+      listeleme. ✅ (1.34.0)
 
 ### 🧩 Widget'lar (boştayken)
 - [x] 🗂️ **Açık sekmeler/pencereler göstergesi** — açık pencereleri listeleyip

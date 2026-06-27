@@ -215,6 +215,7 @@ fn start_services(
         let v = view.clone();
         let token = Rc::new(Cell::new(0u64));
         services::notifications::start(move |note| {
+            v.notifications.push(&note);
             v.set_notification(Some(&note));
             let id = token.get().wrapping_add(1);
             token.set(id);
@@ -262,6 +263,12 @@ fn start_services(
     {
         let v = view.clone();
         services::windows::start(move |wins| v.windows.set(wins));
+    }
+
+    // Connected accessory batteries (Bluetooth mouse / keyboard / headset).
+    {
+        let v = view.clone();
+        services::devices_battery::start(move |devs| v.devices.set(devs));
     }
 
     // Brightness/volume HUD.
