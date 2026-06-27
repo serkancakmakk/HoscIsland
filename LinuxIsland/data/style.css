@@ -84,6 +84,21 @@
   font-feature-settings: "tnum";
 }
 
+/* Brightness/volume HUD. */
+.hud {
+  padding: 4px 14px;
+  min-height: 22px;
+}
+.hud levelbar block.filled {
+  background: #ffffff;
+  border-radius: 3px;
+}
+.hud levelbar trough {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 3px;
+  min-height: 5px;
+}
+
 /* Gmail unread badge. */
 .badge {
   font-size: 10px;

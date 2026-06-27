@@ -18,6 +18,7 @@ use crate::interaction::{self, Handlers};
 use crate::model::{AppState, Battery, Notification, Track};
 use crate::services::mpris::Controls;
 use crate::pomodoro::Pomodoro;
+use crate::services::hud::HudKind;
 use crate::services::{screenshots, volume};
 use crate::settings::{InteractionMode, Settings};
 use crate::shelf::ShelfStore;
@@ -48,6 +49,10 @@ pub struct IslandView {
     shelf: ShelfView,
     pub clipboard: ClipboardView,
     pub gmail: GmailView,
+    top_row: gtk::Box,
+    hud_box: gtk::Box,
+    hud_icon: gtk::Image,
+    hud_bar: gtk::LevelBar,
 }
 
 impl IslandView {
@@ -127,6 +132,26 @@ impl IslandView {
         *self.shot_path.borrow_mut() = None;
         self.shot_box.set_visible(false);
     }
+
+    /// Show the brightness/volume HUD (replacing the top row briefly).
+    pub fn show_hud(&self, kind: HudKind, level: f64) {
+        self.hud_icon.set_icon_name(Some(match kind {
+            HudKind::Brightness => "display-brightness-symbolic",
+            HudKind::Volume => if level <= 0.001 {
+                "audio-volume-muted-symbolic"
+            } else {
+                "audio-volume-high-symbolic"
+            },
+        }));
+        self.hud_bar.set_value(level.clamp(0.0, 1.0));
+        self.top_row.set_visible(false);
+        self.hud_box.set_visible(true);
+    }
+
+    pub fn hide_hud(&self) {
+        self.hud_box.set_visible(false);
+        self.top_row.set_visible(true);
+    }
 }
 
 pub fn build(
@@ -141,6 +166,19 @@ pub fn build(
     root.add_css_class("island");
     root.set_halign(gtk::Align::Center);
     root.set_valign(gtk::Align::Start);
+
+    // --- Brightness/volume HUD (transient; replaces the top row briefly) ---
+    let hud_box = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+    hud_box.add_css_class("hud");
+    hud_box.set_visible(false);
+    let hud_icon = gtk::Image::from_icon_name("display-brightness-symbolic");
+    let hud_bar = gtk::LevelBar::new();
+    hud_bar.set_min_value(0.0);
+    hud_bar.set_max_value(1.0);
+    hud_bar.set_hexpand(true);
+    hud_box.append(&hud_icon);
+    hud_box.append(&hud_bar);
+    root.append(&hud_box);
 
     // --- Top row: cover + title/artist + battery ---
     let top = gtk::Box::new(gtk::Orientation::Horizontal, 10);
@@ -281,6 +319,10 @@ pub fn build(
         shelf: shelf.clone(),
         clipboard: clipboard.clone(),
         gmail: gmail.clone(),
+        top_row: top.clone(),
+        hud_box: hud_box.clone(),
+        hud_icon: hud_icon.clone(),
+        hud_bar: hud_bar.clone(),
     };
 
     // Seek: dragging the progress bar issues SetPosition for the current track.

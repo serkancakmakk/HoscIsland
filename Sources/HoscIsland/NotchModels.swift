@@ -20,6 +20,15 @@ struct BatteryFlash: Equatable {
     static func == (l: BatteryFlash, r: BatteryFlash) -> Bool { l.id == r.id }
 }
 
+/// A transient brightness/volume HUD (replaces the system's center OSD).
+struct HUDInfo: Equatable {
+    enum Kind { case brightness, volume }
+    let id = UUID()
+    var kind: Kind
+    var level: Double  // 0...1
+    static func == (l: HUDInfo, r: HUDInfo) -> Bool { l.id == r.id }
+}
+
 /// A screenshot preview with quick actions.
 struct ScreenshotPreview: Equatable {
     let id = UUID()
@@ -39,6 +48,7 @@ final class NotchState: ObservableObject {
     @Published var batteryPercentage: Int = 100
     @Published var batteryPlugged: Bool = false
     @Published var screenshot: ScreenshotPreview?
+    @Published var hud: HUDInfo?
     /// Cursor is over the collapsed notch (used for the click-mode hover nudge).
     @Published var hovering: Bool = false
     var whatsAppIcon: NSImage?

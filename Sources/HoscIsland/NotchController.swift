@@ -15,6 +15,8 @@ final class NotchController {
     private let pomodoro = PomodoroTimer()
     private let clipboard = ClipboardManager()
     private let gmail = GmailManager()
+    private let systemMonitor = SystemMonitor()
+    private var hudClearItem: DispatchWorkItem?
     private var geometry = NotchGeometry(notchWidth: 200, topInset: 38)
     private var cancellables = Set<AnyCancellable>()
 
@@ -58,6 +60,7 @@ final class NotchController {
         startScreenshotWatcher()
         startEventMonitor()
         startGmail()
+        startSystemMonitor()
         observeStateChanges()
     }
 
@@ -229,6 +232,21 @@ final class NotchController {
         let clear = DispatchWorkItem { [weak self] in self?.state.notification = nil }
         notificationClearItem = clear
         DispatchQueue.main.asyncAfter(deadline: .now() + 3.5, execute: clear)
+    }
+
+    // MARK: - Brightness / volume HUD
+
+    private func startSystemMonitor() {
+        systemMonitor.onChange = { [weak self] hud in self?.flashHUD(hud) }
+        systemMonitor.start()
+    }
+
+    private func flashHUD(_ hud: HUDInfo) {
+        hudClearItem?.cancel()
+        state.hud = hud
+        let clear = DispatchWorkItem { [weak self] in self?.state.hud = nil }
+        hudClearItem = clear
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.3, execute: clear)
     }
 
     // MARK: - Gmail

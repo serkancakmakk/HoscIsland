@@ -2,6 +2,13 @@
 
 Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Boring Notch tarzı).
 
+## [1.28.0] — 2026-06-27
+### Eklendi
+- **Parlaklık & ses HUD'u** 🔆 (her iki platform): Parlaklık ya da ses
+  değişince notch/adada **ikon + bar** ile şık bir gösterge çakar (~1,3 sn).
+  Değer poll'lanır (compositor-agnostik): macOS'ta CoreAudio ses + DisplayServices
+  parlaklık; LinuxIsland'da `wpctl` ses + `/sys/class/backlight` parlaklık.
+
 ## [1.27.0] — 2026-06-27
 ### Eklendi
 - **LinuxIsland parite — pano + olay flaşı + Gmail**: macOS'taki üç özellik Linux'a
@@ -271,8 +278,7 @@ Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Borin
 - [ ] 🎧 **Bağlı cihaz pilleri** — AirPods / Magic Mouse / klavye şarj durumu.
 
 ### 🖥️ Sistem HUD (yerine geçme)
-- [ ] 🔆 **Parlaklık & ses HUD'u** — sistemin ortadaki HUD'u yerine notch'ta
-      şık bir gösterge.
+- [x] 🔆 **Parlaklık & ses HUD'u** — notch'ta ikon + bar göstergesi. ✅ (1.28.0)
 - [x] 📸 **Ekran görüntüsü önizleme** — notch'ta önizleme + kopyala/Finder/sil.
       ✅ (1.10.0)
 - [x] 🔌 **Anlık olay flaşları** — disk/aygıt bağlanma kısa bildirimleri. ✅ (1.25.0, macOS)

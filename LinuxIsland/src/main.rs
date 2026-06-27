@@ -233,6 +233,23 @@ fn start_services(
         services::clipboard::start(move |items| v.clipboard.set_items(items));
     }
 
+    // Brightness/volume HUD.
+    {
+        let v = view.clone();
+        let token = Rc::new(Cell::new(0u64));
+        services::hud::start(move |kind, level| {
+            v.show_hud(kind, level);
+            let id = token.get().wrapping_add(1);
+            token.set(id);
+            let (v2, t2) = (v.clone(), token.clone());
+            glib::timeout_add_local_once(Duration::from_millis(1300), move || {
+                if t2.get() == id {
+                    v2.hide_hud();
+                }
+            });
+        });
+    }
+
     // Device/volume event flashes.
     {
         let flash = banner_flasher(view.clone(), 4);

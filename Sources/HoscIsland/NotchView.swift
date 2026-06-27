@@ -33,6 +33,8 @@ enum NotchMetrics {
     static let bannerWidth: CGFloat = 390
     /// Size of the screenshot preview.
     static let screenshotWidth: CGFloat = 400
+    /// Width of the brightness/volume HUD pill.
+    static let hudWidth: CGFloat = 220
 
     static func collapsedWidth(notchWidth: CGFloat, hasMusic: Bool) -> CGFloat {
         hasMusic ? notchWidth + compactWing * 2 : notchWidth
@@ -244,6 +246,9 @@ struct NotchView: View {
                         insertion: .opacity.animation(.easeOut(duration: 0.25).delay(0.1)),
                         removal: .opacity.animation(.easeIn(duration: 0.12))
                     ))
+            } else if let hud = state.hud {
+                hudContent(hud)
+                    .transition(.opacity.animation(.easeOut(duration: 0.16)))
             } else if let shot = state.screenshot {
                 screenshotContent(shot)
                     .transition(.opacity.animation(.easeOut(duration: 0.22).delay(0.08)))
@@ -261,6 +266,7 @@ struct NotchView: View {
         .animation(.spring(response: 0.48, dampingFraction: 0.84), value: state.notification)
         .animation(.spring(response: 0.45, dampingFraction: 0.82), value: state.batteryFlash)
         .animation(.spring(response: 0.48, dampingFraction: 0.84), value: state.screenshot)
+        .animation(.spring(response: 0.45, dampingFraction: 0.85), value: state.hud)
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: dropTargeted)
         .animation(.spring(response: 0.35, dampingFraction: 0.7), value: state.hovering)
         .onDrop(of: [UTType.fileURL], isTargeted: $dropTargeted) { providers in
@@ -322,8 +328,11 @@ struct NotchView: View {
     private var bannerHeight: CGFloat { topInset + 60 }
     private var screenshotHeight: CGFloat { topInset + 78 }
 
+    private var showHUD: Bool { state.hud != nil && !isExpanded }
+
     private var currentWidth: CGFloat {
         if isExpanded { return NotchMetrics.expandedWidth }
+        if showHUD { return NotchMetrics.hudWidth }
         if showScreenshot { return NotchMetrics.screenshotWidth }
         if showBanner { return NotchMetrics.bannerWidth }
         return NotchMetrics.collapsedWidth(notchWidth: notchWidth, hasMusic: isCompact) + (nudge ? 10 : 0)
@@ -333,9 +342,41 @@ struct NotchView: View {
         if isExpanded {
             return NotchMetrics.expandedVisibleHeight(topInset: topInset, hasMusic: hasMusic, hasShelf: hasShelf)
         }
+        if showHUD { return topInset + 26 }
         if showScreenshot { return screenshotHeight }
         if showBanner { return bannerHeight }
         return NotchMetrics.collapsedHeight + (nudge ? 4 : 0)
+    }
+
+    // MARK: - Brightness / volume HUD
+
+    private func hudContent(_ hud: HUDInfo) -> some View {
+        VStack(spacing: 0) {
+            Color.clear.frame(height: topInset)
+            HStack(spacing: 10) {
+                Image(systemName: hudIcon(hud))
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 16)
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.white.opacity(0.18))
+                        Capsule().fill(Color.white)
+                            .frame(width: max(3, geo.size.width * CGFloat(hud.level)))
+                    }
+                }
+                .frame(height: 5)
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 5)
+        }
+    }
+
+    private func hudIcon(_ hud: HUDInfo) -> String {
+        switch hud.kind {
+        case .brightness: return "sun.max.fill"
+        case .volume: return hud.level <= 0.001 ? "speaker.slash.fill" : "speaker.wave.2.fill"
+        }
     }
 
     // MARK: - Screenshot preview
