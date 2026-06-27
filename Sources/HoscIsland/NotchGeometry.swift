@@ -23,14 +23,10 @@ struct NotchGeometry {
     /// Expanded island rect, sized to the *visible* height so the hover zone
     /// doesn't extend into the invisible part of the (taller) window — otherwise
     /// the island stays stuck open while the cursor sits over empty window area.
-    func expandedRect(on screen: NSScreen, hasMusic: Bool, hasShelf: Bool,
-                      hasClipboard: Bool, hasGmail: Bool, hasWindows: Bool) -> NSRect {
+    func expandedRect(on screen: NSScreen, hasMusic: Bool) -> NSRect {
         let f = screen.frame
         let w = NotchMetrics.expandedWidth
-        let h = NotchMetrics.expandedVisibleHeight(
-            topInset: topInset, hasMusic: hasMusic, hasShelf: hasShelf,
-            hasClipboard: hasClipboard, hasGmail: hasGmail, hasWindows: hasWindows
-        )
+        let h = NotchMetrics.expandedVisibleHeight(topInset: topInset, hasMusic: hasMusic)
         return NSRect(x: f.midX - w / 2 + offset.width, y: f.maxY - h + offset.height, width: w, height: h)
     }
 

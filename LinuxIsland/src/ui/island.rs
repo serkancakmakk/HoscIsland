@@ -350,17 +350,25 @@ pub fn build(
     pomo_play.connect_clicked(clone!(@strong pomo => move |_| pomo.toggle()));
     pomo_reset.connect_clicked(clone!(@strong pomo => move |_| pomo.reset()));
 
-    // --- Windows + Gmail + clipboard strips ---
+    // --- Secondary sections in one fixed-height scrollable drawer, so the card
+    //     stays compact no matter how much content there is. ---
+    let drawer_inner = gtk::Box::new(gtk::Orientation::Vertical, 10);
     let windows = WindowsView::build();
-    root.append(&windows.container);
+    drawer_inner.append(&windows.container);
     let gmail = GmailView::build();
-    root.append(&gmail.container);
+    drawer_inner.append(&gmail.container);
     let clipboard = ClipboardView::build();
-    root.append(&clipboard.container);
-
-    // --- File shelf ---
+    drawer_inner.append(&clipboard.container);
     let shelf = ShelfView::build(shelf_store);
-    root.append(&shelf.container);
+    drawer_inner.append(&shelf.container);
+
+    let drawer = gtk::ScrolledWindow::new();
+    drawer.add_css_class("controls");
+    drawer.set_policy(gtk::PolicyType::Never, gtk::PolicyType::Automatic);
+    drawer.set_min_content_height(160);
+    drawer.set_max_content_height(160);
+    drawer.set_child(Some(&drawer_inner));
+    root.append(&drawer);
 
     let view = IslandView {
         root: root.clone(),

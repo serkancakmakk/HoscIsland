@@ -125,11 +125,7 @@ final class NotchController {
             expandedZone: { [weak self] in
                 guard let self, let s = self.targetScreen else { return nil }
                 let hasMusic = Settings.shared.showMusic && self.nowPlaying.track != nil
-                return self.geometry.expandedRect(on: s, hasMusic: hasMusic,
-                                                  hasShelf: !self.shelf.items.isEmpty,
-                                                  hasClipboard: !self.clipboard.items.isEmpty,
-                                                  hasGmail: self.gmail.connected && !self.gmail.messages.isEmpty,
-                                                  hasWindows: !self.windowsManager.windows.isEmpty)
+                return self.geometry.expandedRect(on: s, hasMusic: hasMusic)
             },
             isExpanded: { [weak self] in self?.state.isExpanded ?? false },
             screenshotActive: { [weak self] in self?.state.screenshot != nil },

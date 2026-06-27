@@ -2,6 +2,13 @@
 
 Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Boring Notch tarzı).
 
+## [1.32.0] — 2026-06-27
+### Değişti
+- **Genişletilmiş kart toparlandı**: İkincil bölümler (açık pencereler, Gmail,
+  pano, raf) artık gövdenin (müzik/idle) altında **sabit yükseklikli, kaydırılabilir
+  tek bir çekmecede** toplanıyor — kart içerik arttıkça sonsuza uzamıyor, hover
+  bölgesi sabit kalıyor.
+
 ## [1.31.0] — 2026-06-27
 ### Eklendi
 - **Şarkı sözleri** 🎤 (her iki platform): Çalan parçanın **senkron** sözleri

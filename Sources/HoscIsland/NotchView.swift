@@ -9,23 +9,23 @@ enum NotchMetrics {
     static let clipRowHeight: CGFloat = 40
     static let gmailRowHeight: CGFloat = 78
     static let windowsRowHeight: CGFloat = 64
+    /// Fixed-height scrollable drawer holding the secondary sections.
+    static let drawerHeight: CGFloat = 172
     static let expandedWidth: CGFloat = 420
-    /// Fixed panel height — large enough for the tallest layout.
-    static var windowHeight: CGFloat {
-        expandedHeight + windowsRowHeight + gmailRowHeight + clipRowHeight + shelfRowHeight
-    }
+    /// Fixed panel height — large enough for the tallest layout (music + drawer).
+    static var windowHeight: CGFloat { expandedHeight + drawerHeight }
     static let cornerRadius: CGFloat = 14
 
     /// Actual visible height of the expanded island for the given content — used
     /// for both the view frame and the hover zone so they always match (otherwise
     /// the island stays "stuck" open over invisible window area).
-    static func expandedVisibleHeight(topInset: CGFloat, hasMusic: Bool, hasShelf: Bool,
-                                      hasClipboard: Bool = false, hasGmail: Bool = false,
-                                      hasWindows: Bool = false) -> CGFloat {
-        // The shelf is always shown when expanded, so always reserve its row.
-        let body = hasMusic ? expandedHeight : topInset + 150  // idle = weather + Pomodoro
-        return body + (hasWindows ? windowsRowHeight : 0) + (hasGmail ? gmailRowHeight : 0)
-            + (hasClipboard ? clipRowHeight : 0) + shelfRowHeight
+    /// Body (music or idle) + the fixed scrollable drawer below it.
+    static func bodyHeight(topInset: CGFloat, hasMusic: Bool) -> CGFloat {
+        hasMusic ? expandedHeight : topInset + 150  // idle = weather + Pomodoro
+    }
+
+    static func expandedVisibleHeight(topInset: CGFloat, hasMusic: Bool) -> CGFloat {
+        bodyHeight(topInset: topInset, hasMusic: hasMusic) + drawerHeight
     }
 
     /// Extra width added to each side of the notch when music is playing, so the
@@ -354,7 +354,7 @@ struct NotchView: View {
 
     private var currentHeight: CGFloat {
         if isExpanded {
-            return NotchMetrics.expandedVisibleHeight(topInset: topInset, hasMusic: hasMusic, hasShelf: hasShelf)
+            return NotchMetrics.expandedVisibleHeight(topInset: topInset, hasMusic: hasMusic)
         }
         if showHUD { return topInset + 26 }
         if showScreenshot { return screenshotHeight }
@@ -603,34 +603,34 @@ struct NotchView: View {
             // Reserve the top strip occupied by the physical camera/notch.
             Color.clear.frame(height: topInset)
 
-            if settings.showMusic, let track = nowPlaying.track {
-                musicSection(track)
-            } else {
-                idleContent
+            Group {
+                if settings.showMusic, let track = nowPlaying.track {
+                    musicSection(track)
+                } else {
+                    idleContent
+                }
             }
+            .frame(height: NotchMetrics.bodyHeight(topInset: topInset, hasMusic: hasMusic) - topInset)
 
-            if !windows.windows.isEmpty {
-                Spacer(minLength: 8)
-                windowsStrip
-            }
-
-            if gmail.connected, !gmail.messages.isEmpty {
-                Spacer(minLength: 8)
-                gmailStrip
-            }
-
-            if !clipboard.items.isEmpty {
-                Spacer(minLength: 8)
-                clipboardStrip
-            }
-
-            // The shelf is always present when expanded, so apps/files can be
-            // added (via the + button) even when it's currently empty.
-            Spacer(minLength: 10)
-            shelfStrip
+            drawer
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 14)
+    }
+
+    /// Secondary sections (windows / Gmail / clipboard / shelf) in one fixed-height
+    /// scroll area, so the card stays compact no matter how much content there is.
+    private var drawer: some View {
+        ScrollView(.vertical, showsIndicators: true) {
+            VStack(spacing: 12) {
+                if !windows.windows.isEmpty { windowsStrip }
+                if gmail.connected, !gmail.messages.isEmpty { gmailStrip }
+                if !clipboard.items.isEmpty { clipboardStrip }
+                shelfStrip   // always present (its + button adds apps/files)
+            }
+            .padding(.top, 6)
+        }
+        .frame(height: NotchMetrics.drawerHeight - 14)
     }
 
     private var windowsStrip: some View {
