@@ -18,6 +18,7 @@ final class NotchController {
     private let systemMonitor = SystemMonitor()
     private var hudClearItem: DispatchWorkItem?
     private let weather = WeatherManager()
+    private let windowsManager = WindowsManager()
     private var geometry = NotchGeometry(notchWidth: 200, topInset: 38)
     private var cancellables = Set<AnyCancellable>()
 
@@ -63,6 +64,7 @@ final class NotchController {
         startGmail()
         startSystemMonitor()
         weather.start()
+        windowsManager.start()
         observeStateChanges()
     }
 
@@ -125,7 +127,8 @@ final class NotchController {
                 return self.geometry.expandedRect(on: s, hasMusic: hasMusic,
                                                   hasShelf: !self.shelf.items.isEmpty,
                                                   hasClipboard: !self.clipboard.items.isEmpty,
-                                                  hasGmail: self.gmail.connected && !self.gmail.messages.isEmpty)
+                                                  hasGmail: self.gmail.connected && !self.gmail.messages.isEmpty,
+                                                  hasWindows: !self.windowsManager.windows.isEmpty)
             },
             isExpanded: { [weak self] in self?.state.isExpanded ?? false },
             screenshotActive: { [weak self] in self?.state.screenshot != nil },
@@ -288,6 +291,7 @@ final class NotchController {
                 clipboard: clipboard,
                 gmail: gmail,
                 weather: weather,
+                windows: windowsManager,
                 notchWidth: geometry.notchWidth,
                 topInset: geometry.topInset,
                 isExpanded: Binding(

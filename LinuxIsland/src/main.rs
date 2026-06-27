@@ -239,6 +239,12 @@ fn start_services(
         services::weather::start(move |w| v.set_weather(w.code, &w.city, w.temp_c));
     }
 
+    // Open-windows switcher.
+    {
+        let v = view.clone();
+        services::windows::start(move |wins| v.windows.set(wins));
+    }
+
     // Brightness/volume HUD.
     {
         let v = view.clone();

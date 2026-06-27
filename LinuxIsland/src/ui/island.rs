@@ -26,6 +26,7 @@ use crate::ui::clipboard::ClipboardView;
 use crate::ui::gmail::GmailView;
 use crate::ui::settings_window;
 use crate::ui::shelf::ShelfView;
+use crate::ui::windows::WindowsView;
 
 #[derive(Clone)]
 pub struct IslandView {
@@ -49,6 +50,7 @@ pub struct IslandView {
     shelf: ShelfView,
     pub clipboard: ClipboardView,
     pub gmail: GmailView,
+    pub windows: WindowsView,
     top_row: gtk::Box,
     hud_box: gtk::Box,
     hud_icon: gtk::Image,
@@ -309,7 +311,9 @@ pub fn build(
     pomo_play.connect_clicked(clone!(@strong pomo => move |_| pomo.toggle()));
     pomo_reset.connect_clicked(clone!(@strong pomo => move |_| pomo.reset()));
 
-    // --- Gmail + clipboard strips ---
+    // --- Windows + Gmail + clipboard strips ---
+    let windows = WindowsView::build();
+    root.append(&windows.container);
     let gmail = GmailView::build();
     root.append(&gmail.container);
     let clipboard = ClipboardView::build();
@@ -340,6 +344,7 @@ pub fn build(
         shelf: shelf.clone(),
         clipboard: clipboard.clone(),
         gmail: gmail.clone(),
+        windows: windows.clone(),
         top_row: top.clone(),
         hud_box: hud_box.clone(),
         hud_icon: hud_icon.clone(),

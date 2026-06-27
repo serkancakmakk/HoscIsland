@@ -2,6 +2,13 @@
 
 Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Boring Notch tarzı).
 
+## [1.30.0] — 2026-06-27
+### Eklendi
+- **Açık pencereler göstergesi** 🗂️ (her iki platform): Açık adada o an açık
+  pencereler ikon + başlıkla listelenir, **tıkla → o pencereye geç**. macOS'ta
+  `CGWindowList` + uygulama aktivasyonu; LinuxIsland'da wlroots kompozitör CLI'ı
+  (Hyprland `hyprctl` / Sway `swaymsg`) ile liste + odak.
+
 ## [1.29.0] — 2026-06-27
 ### Eklendi
 - **Hava durumu** 🌤️ (her iki platform): Boştaki (müzik yokken) genişletilmiş
@@ -301,9 +308,8 @@ Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Borin
       listeleme.
 
 ### 🧩 Widget'lar (boştayken)
-- [ ] 🗂️ **Açık sekmeler/pencereler göstergesi** — adada o an açık olan
-      sekmeleri/pencereleri listeleyip tıkla-geç (Mission Control benzeri hızlı
-      geçiş). _Planlandı; henüz eklenmedi._
+- [x] 🗂️ **Açık sekmeler/pencereler göstergesi** — açık pencereleri listeleyip
+      tıkla-geç. ✅ (1.30.0)
 - [ ] 📅 **Takvim / sıradaki etkinlik** — boştaki notch'ta sonraki toplantı.
 - [x] ⏲️ **Zamanlayıcı / Pomodoro** — boştaki kartta 25 dk sayaç. ✅ (1.21.0)
 - [x] 📋 **Pano geçmişi** — son kopyalananlara hızlı erişim. ✅ (1.25.0, macOS)

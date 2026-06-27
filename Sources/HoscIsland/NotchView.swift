@@ -8,19 +8,23 @@ enum NotchMetrics {
     static let shelfRowHeight: CGFloat = 70
     static let clipRowHeight: CGFloat = 40
     static let gmailRowHeight: CGFloat = 78
+    static let windowsRowHeight: CGFloat = 64
     static let expandedWidth: CGFloat = 420
-    /// Fixed panel height — large enough for the tallest layout (music + gmail + clipboard + shelf).
-    static var windowHeight: CGFloat { expandedHeight + gmailRowHeight + clipRowHeight + shelfRowHeight }
+    /// Fixed panel height — large enough for the tallest layout.
+    static var windowHeight: CGFloat {
+        expandedHeight + windowsRowHeight + gmailRowHeight + clipRowHeight + shelfRowHeight
+    }
     static let cornerRadius: CGFloat = 14
 
     /// Actual visible height of the expanded island for the given content — used
     /// for both the view frame and the hover zone so they always match (otherwise
     /// the island stays "stuck" open over invisible window area).
     static func expandedVisibleHeight(topInset: CGFloat, hasMusic: Bool, hasShelf: Bool,
-                                      hasClipboard: Bool = false, hasGmail: Bool = false) -> CGFloat {
+                                      hasClipboard: Bool = false, hasGmail: Bool = false,
+                                      hasWindows: Bool = false) -> CGFloat {
         // The shelf is always shown when expanded, so always reserve its row.
         let body = hasMusic ? expandedHeight : topInset + 150  // idle = weather + Pomodoro
-        return body + (hasGmail ? gmailRowHeight : 0)
+        return body + (hasWindows ? windowsRowHeight : 0) + (hasGmail ? gmailRowHeight : 0)
             + (hasClipboard ? clipRowHeight : 0) + shelfRowHeight
     }
 
@@ -221,6 +225,7 @@ struct NotchView: View {
     @ObservedObject var clipboard: ClipboardManager
     @ObservedObject var gmail: GmailManager
     @ObservedObject var weather: WeatherManager
+    @ObservedObject var windows: WindowsManager
     @ObservedObject private var settings = Settings.shared
     @EnvironmentObject var state: NotchState
     let notchWidth: CGFloat
@@ -596,6 +601,11 @@ struct NotchView: View {
                 idleContent
             }
 
+            if !windows.windows.isEmpty {
+                Spacer(minLength: 8)
+                windowsStrip
+            }
+
             if gmail.connected, !gmail.messages.isEmpty {
                 Spacer(minLength: 8)
                 gmailStrip
@@ -613,6 +623,38 @@ struct NotchView: View {
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 14)
+    }
+
+    private var windowsStrip: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Label("Pencereler", systemImage: "macwindow.on.rectangle")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.6))
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(windows.windows) { win in
+                        Button { windows.activate(win) } label: {
+                            VStack(spacing: 2) {
+                                if let icon = windows.icon(win) {
+                                    Image(nsImage: icon).resizable().frame(width: 28, height: 28)
+                                } else {
+                                    Image(systemName: "macwindow").font(.system(size: 22))
+                                        .foregroundStyle(.white.opacity(0.6))
+                                }
+                                Text(win.title.isEmpty ? win.app : win.title)
+                                    .font(.system(size: 8))
+                                    .foregroundStyle(.white.opacity(0.6))
+                                    .lineLimit(1)
+                                    .frame(width: 56)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .help(win.title.isEmpty ? win.app : "\(win.app) — \(win.title)")
+                    }
+                }
+            }
+        }
+        .frame(height: NotchMetrics.windowsRowHeight - 6)
     }
 
     private var clipboardStrip: some View {

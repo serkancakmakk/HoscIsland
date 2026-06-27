@@ -5,3 +5,4 @@ pub mod gmail;
 pub mod island;
 pub mod settings_window;
 pub mod shelf;
+pub mod windows;
