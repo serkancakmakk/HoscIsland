@@ -233,6 +233,12 @@ fn start_services(
         services::clipboard::start(move |items| v.clipboard.set_items(items));
     }
 
+    // Weather (idle widget).
+    {
+        let v = view.clone();
+        services::weather::start(move |w| v.set_weather(w.code, &w.city, w.temp_c));
+    }
+
     // Brightness/volume HUD.
     {
         let v = view.clone();

@@ -17,6 +17,7 @@ final class NotchController {
     private let gmail = GmailManager()
     private let systemMonitor = SystemMonitor()
     private var hudClearItem: DispatchWorkItem?
+    private let weather = WeatherManager()
     private var geometry = NotchGeometry(notchWidth: 200, topInset: 38)
     private var cancellables = Set<AnyCancellable>()
 
@@ -61,6 +62,7 @@ final class NotchController {
         startEventMonitor()
         startGmail()
         startSystemMonitor()
+        weather.start()
         observeStateChanges()
     }
 
@@ -285,6 +287,7 @@ final class NotchController {
                 pomodoro: pomodoro,
                 clipboard: clipboard,
                 gmail: gmail,
+                weather: weather,
                 notchWidth: geometry.notchWidth,
                 topInset: geometry.topInset,
                 isExpanded: Binding(

@@ -19,7 +19,7 @@ enum NotchMetrics {
     static func expandedVisibleHeight(topInset: CGFloat, hasMusic: Bool, hasShelf: Bool,
                                       hasClipboard: Bool = false, hasGmail: Bool = false) -> CGFloat {
         // The shelf is always shown when expanded, so always reserve its row.
-        let body = hasMusic ? expandedHeight : topInset + 120  // idle = Pomodoro
+        let body = hasMusic ? expandedHeight : topInset + 150  // idle = weather + Pomodoro
         return body + (hasGmail ? gmailRowHeight : 0)
             + (hasClipboard ? clipRowHeight : 0) + shelfRowHeight
     }
@@ -220,6 +220,7 @@ struct NotchView: View {
     @ObservedObject var pomodoro: PomodoroTimer
     @ObservedObject var clipboard: ClipboardManager
     @ObservedObject var gmail: GmailManager
+    @ObservedObject var weather: WeatherManager
     @ObservedObject private var settings = Settings.shared
     @EnvironmentObject var state: NotchState
     let notchWidth: CGFloat
@@ -854,9 +855,19 @@ struct NotchView: View {
         .buttonStyle(.plain)
     }
 
-    /// Idle (no music) expanded card shows a Pomodoro timer.
+    /// Idle (no music) expanded card shows weather + a Pomodoro timer.
     private var idleContent: some View {
         VStack(spacing: 8) {
+            if let w = weather.weather {
+                HStack(spacing: 8) {
+                    Image(systemName: weatherSymbol(w.code))
+                        .font(.system(size: 15))
+                        .foregroundStyle(.white.opacity(0.85))
+                    Text("\(w.city) · \(w.tempC)°")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.8))
+                }
+            }
             Label("Pomodoro", systemImage: "timer")
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.5))

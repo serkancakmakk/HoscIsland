@@ -53,6 +53,9 @@ pub struct IslandView {
     hud_box: gtk::Box,
     hud_icon: gtk::Image,
     hud_bar: gtk::LevelBar,
+    weather_box: gtk::Box,
+    weather_icon: gtk::Image,
+    weather_label: gtk::Label,
 }
 
 impl IslandView {
@@ -152,6 +155,12 @@ impl IslandView {
         self.hud_box.set_visible(false);
         self.top_row.set_visible(true);
     }
+
+    pub fn set_weather(&self, code: i32, city: &str, temp_c: i32) {
+        self.weather_icon.set_icon_name(Some(crate::services::weather::icon_name(code)));
+        self.weather_label.set_text(&format!("{city} · {temp_c}°"));
+        self.weather_box.set_visible(true);
+    }
 }
 
 pub fn build(
@@ -179,6 +188,18 @@ pub fn build(
     hud_box.append(&hud_icon);
     hud_box.append(&hud_bar);
     root.append(&hud_box);
+
+    // --- Weather row (idle widget) ---
+    let weather_box = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+    weather_box.add_css_class("controls");
+    weather_box.set_halign(gtk::Align::Center);
+    weather_box.set_visible(false);
+    let weather_icon = gtk::Image::from_icon_name("weather-overcast-symbolic");
+    let weather_label = gtk::Label::new(None);
+    weather_label.add_css_class("subtitle");
+    weather_box.append(&weather_icon);
+    weather_box.append(&weather_label);
+    root.append(&weather_box);
 
     // --- Top row: cover + title/artist + battery ---
     let top = gtk::Box::new(gtk::Orientation::Horizontal, 10);
@@ -323,6 +344,9 @@ pub fn build(
         hud_box: hud_box.clone(),
         hud_icon: hud_icon.clone(),
         hud_bar: hud_bar.clone(),
+        weather_box: weather_box.clone(),
+        weather_icon: weather_icon.clone(),
+        weather_label: weather_label.clone(),
     };
 
     // Seek: dragging the progress bar issues SetPosition for the current track.

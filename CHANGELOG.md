@@ -2,6 +2,12 @@
 
 Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Boring Notch tarzı).
 
+## [1.29.0] — 2026-06-27
+### Eklendi
+- **Hava durumu** 🌤️ (her iki platform): Boştaki (müzik yokken) genişletilmiş
+  kartta şehir + sıcaklık + duruma göre ikon. IP konum (ipapi.co) → Open-Meteo;
+  **API anahtarı gerektirmez**, 30 dk'da bir güncellenir.
+
 ## [1.28.0] — 2026-06-27
 ### Eklendi
 - **Parlaklık & ses HUD'u** 🔆 (her iki platform): Parlaklık ya da ses
@@ -301,7 +307,7 @@ Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Borin
 - [ ] 📅 **Takvim / sıradaki etkinlik** — boştaki notch'ta sonraki toplantı.
 - [x] ⏲️ **Zamanlayıcı / Pomodoro** — boştaki kartta 25 dk sayaç. ✅ (1.21.0)
 - [x] 📋 **Pano geçmişi** — son kopyalananlara hızlı erişim. ✅ (1.25.0, macOS)
-- [ ] 🌤️ **Hava durumu** — özetlenmiş günlük durum.
+- [x] 🌤️ **Hava durumu** — boştaki kartta şehir + sıcaklık + ikon. ✅ (1.29.0)
 
 ### 🎨 Özelleştirme & Davranış
 - [ ] 🎨 **Görünüm ayarları** — ada boyutu, köşe yarıçapı, renk/tema
