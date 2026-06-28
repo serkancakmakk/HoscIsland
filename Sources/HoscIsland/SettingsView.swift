@@ -7,73 +7,19 @@ struct SettingsView: View {
     @State private var gmailPasswordInput = ""
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 10) {
-                header
-                    .padding(.bottom, 4)
-
-                sectionTitle(L("Görünüm", "Appearance"))
-                card {
-                    screenRow
-                    insetDivider
-                    row("character.bubble", .blue, L("Dil", "Language")) {
-                        compactPicker($settings.language, AppLanguage.allCases) { $0.label }
-                    }
-                    insetDivider
-                    row("rectangle.roundedtop", .indigo, L("Köşe yuvarlaklığı", "Corner rounding")) {
-                        compactPicker($settings.cornerStyle, CornerStyle.allCases) { $0.label }
-                    }
-                    insetDivider
-                    tappableRow("arrow.clockwise", .gray, L("Ekranları yenile", "Refresh screens")) {
-                        screens = Settings.availableScreens()
-                    }
-                }
-
-                sectionTitle(L("Etkileşim", "Interaction"))
-                card {
-                    row("hand.tap.fill", .purple, L("Açılma şekli", "Open mode")) {
-                        compactPicker($settings.interactionMode, InteractionMode.allCases) { $0.label }
-                    }
-                    insetDivider
-                    row("timer", .teal, L("Hover hassasiyeti", "Hover sensitivity")) {
-                        compactPicker($settings.hoverSensitivity, HoverSensitivity.allCases) { $0.label }
-                    }
-                    insetDivider
-                    row("arrow.up.and.down.and.arrow.left.and.right", .orange, L("Taşınabilir ada", "Movable island"),
-                        subtitle: L("Üst notch şeridinden tutup sürükle", "Grab the top notch strip to drag")) {
-                        Toggle("", isOn: $settings.movableNotch)
-                            .labelsHidden().toggleStyle(.switch).controlSize(.small)
-                    }
-                    insetDivider
-                    tappableRow("arrow.counterclockwise", .gray, L("Konumu sıfırla", "Reset position"),
-                                enabled: settings.notchOffset != .zero) {
-                        settings.notchOffset = .zero
-                        settings.movableNotch = settings.movableNotch  // republish → re-center
-                    }
-                }
-
-                sectionTitle(L("Özellikler", "Features"))
-                card {
-                    toggleRow("power", .green, L("Açılışta başlat", "Launch at login"), $settings.launchAtLogin)
-                    insetDivider
-                    toggleRow("music.note", .pink, L("Müzik göstergesi", "Music indicator"), $settings.showMusic)
-                    insetDivider
-                    toggleRow("message.fill", .green, L("Bildirim banner'ı", "Notification banner"), $settings.showNotifications)
-                    insetDivider
-                    toggleRow("bell.badge.fill", .red, L("Okunmamış rozeti", "Unread badge"), $settings.showUnreadCount)
-                    insetDivider
-                    row("battery.100", .green, L("Pil göstergesi", "Battery indicator")) {
-                        compactPicker($settings.batteryMode, BatteryMode.allCases) { $0.label }
-                    }
-                }
-
-                sectionTitle(L("Takvim", "Calendar"))
-                card { calendarContent }
-
-                sectionTitle("Gmail")
-                card { gmailContent }
+        VStack(spacing: 0) {
+            header.padding([.horizontal, .top], 18).padding(.bottom, 10)
+            TabView {
+                tab(appearanceTab)
+                    .tabItem { Label(L("Genel", "General"), systemImage: "slider.horizontal.3") }
+                tab(interactionTab)
+                    .tabItem { Label(L("Etkileşim", "Interaction"), systemImage: "hand.tap") }
+                tab(featuresTab)
+                    .tabItem { Label(L("Özellikler", "Features"), systemImage: "square.grid.2x2") }
+                tab(connectionsTab)
+                    .tabItem { Label(L("Bağlantılar", "Connections"), systemImage: "link") }
             }
-            .padding(18)
+            .padding([.horizontal, .bottom], 12)
         }
         .frame(width: 420, height: 600)
         .background(softBackground)
@@ -81,6 +27,86 @@ struct SettingsView: View {
             for: NSApplication.didChangeScreenParametersNotification)) { _ in
             screens = Settings.availableScreens()
         }
+    }
+
+    /// Wrap a tab's content in a scroll view with consistent padding.
+    private func tab<C: View>(@ViewBuilder _ content: () -> C) -> some View {
+        ScrollView { VStack(alignment: .leading, spacing: 10) { content() }.padding(14) }
+    }
+
+    // MARK: - Tabs
+
+    @ViewBuilder
+    private func appearanceTab() -> some View {
+        sectionTitle(L("Görünüm", "Appearance"))
+        card {
+            screenRow
+            insetDivider
+            row("character.bubble", .blue, L("Dil", "Language")) {
+                compactPicker($settings.language, AppLanguage.allCases) { $0.label }
+            }
+            insetDivider
+            row("rectangle.roundedtop", .indigo, L("Köşe yuvarlaklığı", "Corner rounding")) {
+                compactPicker($settings.cornerStyle, CornerStyle.allCases) { $0.label }
+            }
+            insetDivider
+            tappableRow("arrow.clockwise", .gray, L("Ekranları yenile", "Refresh screens")) {
+                screens = Settings.availableScreens()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func interactionTab() -> some View {
+        sectionTitle(L("Etkileşim", "Interaction"))
+        card {
+            row("hand.tap.fill", .purple, L("Açılma şekli", "Open mode")) {
+                compactPicker($settings.interactionMode, InteractionMode.allCases) { $0.label }
+            }
+            insetDivider
+            row("timer", .teal, L("Hover hassasiyeti", "Hover sensitivity")) {
+                compactPicker($settings.hoverSensitivity, HoverSensitivity.allCases) { $0.label }
+            }
+            insetDivider
+            row("arrow.up.and.down.and.arrow.left.and.right", .orange, L("Taşınabilir ada", "Movable island"),
+                subtitle: L("Üst notch şeridinden tutup sürükle", "Grab the top notch strip to drag")) {
+                Toggle("", isOn: $settings.movableNotch)
+                    .labelsHidden().toggleStyle(.switch).controlSize(.small)
+            }
+            insetDivider
+            tappableRow("arrow.counterclockwise", .gray, L("Konumu sıfırla", "Reset position"),
+                        enabled: settings.notchOffset != .zero) {
+                settings.notchOffset = .zero
+                settings.movableNotch = settings.movableNotch  // republish → re-center
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func featuresTab() -> some View {
+        sectionTitle(L("Özellikler", "Features"))
+        card {
+            toggleRow("power", .green, L("Açılışta başlat", "Launch at login"), $settings.launchAtLogin)
+            insetDivider
+            toggleRow("music.note", .pink, L("Müzik göstergesi", "Music indicator"), $settings.showMusic)
+            insetDivider
+            toggleRow("message.fill", .green, L("Bildirim banner'ı", "Notification banner"), $settings.showNotifications)
+            insetDivider
+            toggleRow("bell.badge.fill", .red, L("Okunmamış rozeti", "Unread badge"), $settings.showUnreadCount)
+            insetDivider
+            row("battery.100", .green, L("Pil göstergesi", "Battery indicator")) {
+                compactPicker($settings.batteryMode, BatteryMode.allCases) { $0.label }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func connectionsTab() -> some View {
+        sectionTitle(L("Takvim", "Calendar"))
+        card { calendarContent }
+
+        sectionTitle("Gmail")
+        card { gmailContent }
     }
 
     // MARK: - Gmail

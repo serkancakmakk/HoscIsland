@@ -2,6 +2,13 @@
 
 Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Boring Notch tarzı).
 
+## [1.41.0] — 2026-06-28
+### Değişti
+- **Sekmeli Ayarlar penceresi** ⚙️ (her iki platform): Ayarlar tek uzun listeden
+  **sekmelere** ayrıldı — **Genel/Görünüm · Etkileşim · Özellikler · Bağlantılar**.
+  macOS'ta `TabView`, LinuxIsland'da `gtk::Notebook`. İçerik/işlev aynı, gezinme
+  daha derli toplu.
+
 ## [1.40.0] — 2026-06-28
 ### Değişti
 - **Hava durumu zenginleşti** 🌡️ (her iki platform): Şehir + sıcaklığın yanında
@@ -411,8 +418,7 @@ Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Borin
       ⏸️ _Ertelendi: macOS'a özgü; imzalı dağıtım + appcast altyapısı ister._
 - [ ] 🔏 **İmzalama & notarization** — dağıtım için imzalı `.app`.
       ⏸️ _Bloke: ücretli Apple Developer hesabı + notarization kimlik bilgisi gerekir._
-- [ ] ⚙️ **Sekmeli Ayarlar penceresi** — Genel / Görünüm / Medya / Hakkında.
-      _(Saf UI düzenlemesi; mevcut tek-sayfa ayarlar işlevsel olarak tam.)_
+- [x] ⚙️ **Sekmeli Ayarlar penceresi** — Genel/Görünüm · Etkileşim · Özellikler · Bağlantılar. ✅ (1.41.0)
 
 ### 🔎 İncelenecek / kısıtlar
 - macOS 15.4+ MediaRemote 3. parti uygulamalara kapalı → şu an yalnız Music &

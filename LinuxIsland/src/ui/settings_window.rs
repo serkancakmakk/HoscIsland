@@ -16,19 +16,15 @@ use crate::settings::{BatteryMode, CornerStyle, HoverSensitivity, InteractionMod
 pub fn show(settings: Rc<RefCell<Settings>>) {
     let win = gtk::Window::builder()
         .title(t("LinuxIsland Ayarları", "LinuxIsland Settings"))
-        .default_width(360)
-        .default_height(360)
+        .default_width(380)
+        .default_height(440)
         .build();
 
-    let root = gtk::Box::new(gtk::Orientation::Vertical, 12);
-    root.set_margin_top(18);
-    root.set_margin_bottom(18);
-    root.set_margin_start(18);
-    root.set_margin_end(18);
-
-    root.append(&heading(t("Özellikler", "Features")));
-
+    let notebook = gtk::Notebook::new();
     let s = settings.borrow().clone();
+
+    // ---- Features tab ----
+    let root = page_box();
 
     root.append(&switch_row(t("Müzik göstergesi", "Music indicator"), s.show_music, clone!(@strong settings => move |on| {
         settings.borrow_mut().show_music = on; settings.borrow().save();
@@ -100,6 +96,9 @@ pub fn show(settings: Rc<RefCell<Settings>>) {
     battery_row.append(&dd);
     root.append(&battery_row);
 
+    // ---- Appearance tab ----
+    let appearance = page_box();
+
     // Corner-rounding dropdown.
     let corner_row = gtk::Box::new(gtk::Orientation::Horizontal, 8);
     corner_row.append(&gtk::Label::new(Some(t("Köşe yuvarlaklığı", "Corner rounding"))));
@@ -122,7 +121,7 @@ pub fn show(settings: Rc<RefCell<Settings>>) {
         settings.borrow().save();
     }));
     corner_row.append(&cdd);
-    root.append(&corner_row);
+    appearance.append(&corner_row);
 
     // Language dropdown (applies on restart).
     let lang_row = gtk::Box::new(gtk::Orientation::Horizontal, 8);
@@ -146,10 +145,13 @@ pub fn show(settings: Rc<RefCell<Settings>>) {
         settings.borrow().save();
     }));
     lang_row.append(&ldd);
-    root.append(&lang_row);
+    appearance.append(&lang_row);
+
+    // ---- Connections tab ----
+    let connections = page_box();
 
     // Calendar (iCal URL).
-    root.append(&heading(t("Takvim", "Calendar")));
+    connections.append(&heading(t("Takvim", "Calendar")));
     let cal_entry = gtk::Entry::new();
     cal_entry.set_placeholder_text(Some("https://…/basic.ics"));
     if let Some(u) = s.calendar_url.clone() {
@@ -161,14 +163,14 @@ pub fn show(settings: Rc<RefCell<Settings>>) {
         settings.borrow_mut().calendar_url = v;
         settings.borrow().save();
     }));
-    root.append(&cal_entry);
-    root.append(&gtk::Label::new(Some(t(
+    connections.append(&cal_entry);
+    connections.append(&gtk::Label::new(Some(t(
         "Takvimin gizli iCal adresini yapıştır (boştaki kartta sıradaki etkinlik).",
         "Paste your calendar's private iCal address (next event on the idle card).",
     ))));
 
     // Gmail.
-    root.append(&heading("Gmail"));
+    connections.append(&heading("Gmail"));
     if s.gmail_connected() {
         let row = gtk::Box::new(gtk::Orientation::Horizontal, 8);
         let lbl = gtk::Label::new(Some(&format!("{} {}", t("Bağlı:", "Connected:"), s.gmail_email.clone().unwrap_or_default())));
@@ -180,7 +182,7 @@ pub fn show(settings: Rc<RefCell<Settings>>) {
         }));
         row.append(&lbl);
         row.append(&disconnect);
-        root.append(&row);
+        connections.append(&row);
     } else {
         let email = gtk::Entry::new();
         email.set_placeholder_text(Some("ornek@gmail.com"));
@@ -196,18 +198,37 @@ pub fn show(settings: Rc<RefCell<Settings>>) {
                 pass.set_text("");
             }
         }));
-        root.append(&email);
-        root.append(&pass);
-        root.append(&connect);
+        connections.append(&email);
+        connections.append(&pass);
+        connections.append(&connect);
     }
 
-    root.append(&gtk::Label::new(Some(t(
+    connections.append(&gtk::Label::new(Some(t(
         "Gmail için 2FA + Uygulama Şifresi gerekir. Ayarları değiştirince uygulamayı yeniden başlat.",
         "Gmail needs 2FA + an App Password. Restart the app after changing settings.",
     ))));
 
-    win.set_child(Some(&root));
+    add_tab(&notebook, &root, t("Özellikler", "Features"));
+    add_tab(&notebook, &appearance, t("Görünüm", "Appearance"));
+    add_tab(&notebook, &connections, t("Bağlantılar", "Connections"));
+
+    win.set_child(Some(&notebook));
     win.present();
+}
+
+/// A margined vertical page for a settings tab.
+fn page_box() -> gtk::Box {
+    let b = gtk::Box::new(gtk::Orientation::Vertical, 12);
+    b.set_margin_top(18);
+    b.set_margin_bottom(18);
+    b.set_margin_start(18);
+    b.set_margin_end(18);
+    b
+}
+
+/// Add a page to the notebook with a text tab label.
+fn add_tab(notebook: &gtk::Notebook, page: &gtk::Box, title: &str) {
+    notebook.append_page(page, Some(&gtk::Label::new(Some(title))));
 }
 
 fn heading(text: &str) -> gtk::Label {
