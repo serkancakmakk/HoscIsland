@@ -354,11 +354,14 @@ Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Borin
 ### 🎵 Medya & Now Playing
 - [x] ⏱️ **Şarkı ilerleme çubuğu** — geçen/toplam süre; sürükle-seek + kapağa
       tıklayınca uygulamayı öne getirme. ✅ (1.5.0)
-- [ ] 🎚️ **Canlı görselleştirici** — mevcut `EqualizerView` yerine gerçek ritimden
-      beslenen waveform animasyonu.
+- [ ] 🎚️ **Canlı görselleştirici** — gerçek ritimden beslenen waveform.
+      ⏸️ _Ertelendi: sistem ses çıkışını yakalamayı gerektirir (macOS'ta sanal
+      cihaz/izin, Linux'ta PipeWire capture) — şimdilik animasyonlu `EqualizerView`._
 - [x] 🔊 **Ses kontrolü** — notch içinde sistem ses kaydırıcısı. ✅ (1.6.0)
       _(AirPods/çıkış cihazı seçimi sonraya bırakıldı)_
-- [ ] ❤️ **Beğen / favori** — çalan parçayı beğenme (Music "Love", Spotify save).
+- [ ] ❤️ **Beğen / favori** — çalan parçayı beğenme.
+      ⏸️ _Ertelendi: parite yok — Linux MPRIS'te "like" eylemi yok; yalnız
+      macOS Music için anlamlı._
 - [x] 🎤 **Şarkı sözleri** — senkron sözler, o anki satır. ✅ (1.31.0)
 
 ### 🔋 Pil & Güç
@@ -375,6 +378,8 @@ Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Borin
 ### 📁 Dosya Rafı (Shelf)
 - [x] 📁 **Sürükle-bırak tepsi** — notch'a bırakılan dosyalar için raf. ✅ (1.11.0)
 - [ ] 📤 **Hızlı AirDrop / paylaşım** — raftaki dosyayı tek tıkla paylaşma.
+      ⏸️ _Ertelendi: parite zayıf — macOS'ta native share sheet var, Linux'ta
+      evrensel bir paylaşım arayüzü yok (en fazla `xdg-email`)._
 - [x] 🕑 **Son indirilenler** — çekmecede ~/Downloads hızlı erişim. ✅ (1.36.0)
 
 ### 🔔 Bildirimler
@@ -388,23 +393,43 @@ Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Borin
 - [x] 📅 **Takvim / sıradaki etkinlik** — iCal URL'den boştaki kartta sıradaki etkinlik. ✅ (1.38.0)
 - [x] ⏲️ **Zamanlayıcı / Pomodoro** — boştaki kartta 25 dk sayaç. ✅ (1.21.0)
 - [x] 📋 **Pano geçmişi** — son kopyalananlara hızlı erişim. ✅ (1.25.0, macOS)
-- [x] 🌤️ **Hava durumu** — boştaki kartta şehir + sıcaklık + ikon. ✅ (1.29.0)
+- [x] 🌤️ **Hava durumu** — şehir + sıcaklık + ikon; hissedilen + en yüksek/düşük. ✅ (1.29.0 · 1.40.0)
 
 ### 🎨 Özelleştirme & Davranış
 - [x] 🎨 **Görünüm ayarları** — köşe yuvarlaklığı (Yumuşak/Orta/Keskin). ✅ (1.37.0)
       _(boyut/renk/tema sonraki adımda)_
 - [x] 👋 **Hover hassasiyeti** — açılma gecikmesi / kapanma süresi ayarı. ✅ (1.22.0)
-- [ ] 🖱️ **Etkileşim modu** — hover yerine "tıkla-aç" seçeneği.
+- [x] 🖱️ **Etkileşim modu** — hover yerine "tıkla-aç" seçeneği. ✅ (1.13.0 macOS · 1.17.0 Linux)
+- [x] 🌍 **Dil** — Sistem / Türkçe / English. ✅ (1.39.0)
 - [x] 🚀 **Açılışta otomatik başlat** — `SMAppService` (Login Item) + ayar anahtarı. ✅ (1.20.0)
 
 ### 🛠️ Teknik & Dağıtım
 - [x] 🌍 **İngilizce yerelleştirme** — TR/EN dil desteği (Sistem/TR/EN). ✅ (1.39.0)
+- [x] 🧱 **CI/CD release hattı** — her push'ta iki platform derlenir, `[release]`
+      ile GitHub Releases. ✅ (1.16.0)
 - [ ] ⬆️ **Otomatik güncelleme** — Sparkle entegrasyonu.
+      ⏸️ _Ertelendi: macOS'a özgü; imzalı dağıtım + appcast altyapısı ister._
 - [ ] 🔏 **İmzalama & notarization** — dağıtım için imzalı `.app`.
+      ⏸️ _Bloke: ücretli Apple Developer hesabı + notarization kimlik bilgisi gerekir._
 - [ ] ⚙️ **Sekmeli Ayarlar penceresi** — Genel / Görünüm / Medya / Hakkında.
+      _(Saf UI düzenlemesi; mevcut tek-sayfa ayarlar işlevsel olarak tam.)_
 
 ### 🔎 İncelenecek / kısıtlar
 - macOS 15.4+ MediaRemote 3. parti uygulamalara kapalı → şu an yalnız Music &
   Spotify. Sistem geneli "now playing" için alternatif araştırılacak.
 - Şarj / cihaz pili verisi için `IOKit` (IOPowerSources) ile özel girişim gerekli.
 - Pano / bildirim erişimi ek gizlilik izinleri gerektirebilir.
+
+---
+
+## ✅ Durum
+
+Planlanan özellik kümesi **tamamlandı**. Açık kalan tüm maddeler ya tek
+platforma özgü (parite bozar), ya harici araç/kimlik bilgisi (Apple Developer,
+ses yakalama) gerektiriyor, ya da saf kozmetik düzenleme — hepsi yukarıda
+`⏸️ Ertelendi` / `Bloke` gerekçesiyle işaretli.
+
+- **macOS (HoscIsland)** ve **Linux (LinuxIsland)** özellik bazında **paritede**.
+- Her özellik ayrı PR'da **CI'da iki platformda da derlenerek** main'e alındı.
+- Yeni sürüm yayınlamak için: bir commit mesajına `[release]` ekle → CI, sürümü
+  `CHANGELOG`'dan okuyup her iki binary'i **GitHub Releases**'a yükler.
