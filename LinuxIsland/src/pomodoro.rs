@@ -21,6 +21,7 @@ pub struct Pomodoro {
     /// Generation token so a restarted tick supersedes the previous one.
     generation: Rc<Cell<u64>>,
     on_change: Rc<RefCell<Option<Box<dyn Fn(u32, bool)>>>>,
+    on_finish: Rc<RefCell<Option<Box<dyn Fn()>>>>,
 }
 
 impl Pomodoro {
@@ -31,7 +32,13 @@ impl Pomodoro {
             work_minutes: Rc::new(Cell::new(25)),
             generation: Rc::new(Cell::new(0)),
             on_change: Rc::new(RefCell::new(None)),
+            on_finish: Rc::new(RefCell::new(None)),
         }
+    }
+
+    /// Register a callback fired (UI thread) when the countdown reaches zero.
+    pub fn on_finish<F: Fn() + 'static>(&self, f: F) {
+        *self.on_finish.borrow_mut() = Some(Box::new(f));
     }
 
     /// Tap-to-change: jump to the next preset length and reset to it.
@@ -86,7 +93,14 @@ impl Pomodoro {
                 this.running.set(false);
             }
             this.emit();
-            if left == 0 { glib::ControlFlow::Break } else { glib::ControlFlow::Continue }
+            if left == 0 {
+                if let Some(cb) = this.on_finish.borrow().as_ref() {
+                    cb();
+                }
+                glib::ControlFlow::Break
+            } else {
+                glib::ControlFlow::Continue
+            }
         });
     }
 

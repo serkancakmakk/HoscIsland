@@ -511,6 +511,20 @@ pub fn build(
     }));
     root.add_controller(menu);
 
+    // Pomodoro finished → chime + a banner that auto-clears after 4s.
+    pomo.on_finish(clone!(@strong view => move || {
+        play_finish_sound();
+        view.set_notification(Some(&Notification {
+            app: "⏲️ Pomodoro".to_owned(),
+            summary: crate::i18n::t("Süre doldu — mola ver", "Time's up — take a break").to_owned(),
+            body: String::new(),
+        }));
+        let v2 = view.clone();
+        glib::timeout_add_local_once(std::time::Duration::from_secs(4), move || {
+            v2.set_notification(None);
+        });
+    }));
+
     let handlers = Handlers {
         on_expand: Box::new(clone!(@weak root, @strong state => move || {
             state.borrow_mut().expanded = true;
@@ -535,6 +549,18 @@ pub fn build(
 
 fn play_icon(playing: bool) -> &'static str {
     if playing { "media-playback-pause-symbolic" } else { "media-playback-start-symbolic" }
+}
+
+/// Play a completion chime: prefer the freedesktop sound theme via
+/// `canberra-gtk-play`, fall back to `paplay` on the standard sound file.
+fn play_finish_sound() {
+    use std::process::Command;
+    if Command::new("canberra-gtk-play").args(["-i", "complete"]).spawn().is_ok() {
+        return;
+    }
+    let _ = Command::new("paplay")
+        .arg("/usr/share/sounds/freedesktop/stereo/complete.oga")
+        .spawn();
 }
 
 /// Popover with a SpinButton to type/step a custom Pomodoro length (minutes).

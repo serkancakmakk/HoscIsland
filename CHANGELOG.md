@@ -2,6 +2,13 @@
 
 Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Boring Notch tarzı).
 
+## [1.47.0] — 2026-06-28
+### Eklendi
+- **Pomodoro bitince uyarı** 🔔 (her iki platform): Sayaç sıfıra inince **çalma
+  sesi** + notch'ta **"Süre doldu — mola ver"** banner'ı. macOS'ta `NSSound`
+  (Glass), LinuxIsland'da freedesktop ses teması (`canberra-gtk-play -i complete`,
+  yoksa `paplay …/complete.oga`).
+
 ## [1.46.0] — 2026-06-28
 ### Eklendi
 - **Pomodoro'ya süre yazma** ⌨️ (her iki platform): Sayaca tıklayınca artık

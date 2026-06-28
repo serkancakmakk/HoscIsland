@@ -11,6 +11,9 @@ final class PomodoroTimer: ObservableObject {
     @Published private(set) var remaining = 25 * 60
     @Published private(set) var running = false
 
+    /// Called (main thread) when the countdown reaches zero.
+    var onFinished: (() -> Void)?
+
     private var timer: Timer?
 
     private var workDuration: Int { workMinutes * 60 }
@@ -56,6 +59,9 @@ final class PomodoroTimer: ObservableObject {
     private func tick() {
         guard remaining > 0 else { pause(); return }
         remaining -= 1
-        if remaining == 0 { pause() }
+        if remaining == 0 {
+            pause()
+            onFinished?()
+        }
     }
 }

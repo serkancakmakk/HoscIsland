@@ -71,6 +71,7 @@ final class NotchController {
         deviceBattery.start()
         downloads.start()
         calendar.start()
+        pomodoro.onFinished = { [weak self] in self?.pomodoroFinished() }
         observeStateChanges()
     }
 
@@ -287,6 +288,14 @@ final class NotchController {
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.gmail.reconfigure() }
             .store(in: &cancellables)
+    }
+
+    /// Pomodoro finished: chime + a notch banner.
+    private func pomodoroFinished() {
+        NSSound(named: "Glass")?.play()
+        flashEvent(symbol: "timer",
+                   title: L("Pomodoro bitti", "Pomodoro done"),
+                   message: L("Süre doldu — mola ver", "Time's up — take a break"))
     }
 
     private func flashBattery() {
