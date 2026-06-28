@@ -122,6 +122,13 @@
   padding: 0 6px;
 }
 
+/* Collapsed-pill Pomodoro countdown. */
+.pomo-mini {
+  font-weight: 700;
+  font-size: 12px;
+  color: #ffffff;
+}
+
 /* Generic content chip (device batteries, notification rows). */
 .chip {
   padding: 4px 8px;
