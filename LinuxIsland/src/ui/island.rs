@@ -168,9 +168,13 @@ impl IslandView {
         self.top_row.set_visible(true);
     }
 
-    pub fn set_weather(&self, code: i32, city: &str, temp_c: i32) {
-        self.weather_icon.set_icon_name(Some(crate::services::weather::icon_name(code)));
-        self.weather_label.set_text(&format!("{city} · {temp_c}°"));
+    pub fn set_weather(&self, w: &crate::services::weather::Weather) {
+        self.weather_icon.set_icon_name(Some(crate::services::weather::icon_name(w.code)));
+        let feels = crate::i18n::t("Hissedilen", "Feels");
+        self.weather_label.set_text(&format!(
+            "{} · {}°  ({} {}° · ↑{}° ↓{}°)",
+            w.city, w.temp_c, feels, w.feels_like, w.hi, w.lo
+        ));
         self.weather_box.set_visible(true);
     }
 

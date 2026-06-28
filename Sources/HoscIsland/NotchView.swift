@@ -1056,9 +1056,14 @@ struct NotchView: View {
                     Image(systemName: weatherSymbol(w.code))
                         .font(.system(size: 15))
                         .foregroundStyle(.white.opacity(0.85))
-                    Text("\(w.city) · \(w.tempC)°")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.8))
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("\(w.city) · \(w.tempC)°")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.8))
+                        Text("\(L("Hissedilen", "Feels")) \(w.feelsLike)° · ↑\(w.hi)° ↓\(w.lo)°")
+                            .font(.system(size: 9))
+                            .foregroundStyle(.white.opacity(0.5))
+                    }
                 }
             }
             Label("Pomodoro", systemImage: "timer")
