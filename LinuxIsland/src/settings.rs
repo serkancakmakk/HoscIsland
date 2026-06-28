@@ -85,6 +85,8 @@ pub struct Settings {
     pub offset_y: i32,
     /// Connected Gmail address (the app password lives in a separate 0600 file).
     pub gmail_email: Option<String>,
+    /// iCalendar (.ics) feed URL for the "next event" widget.
+    pub calendar_url: Option<String>,
 }
 
 impl Default for Settings {
@@ -101,6 +103,7 @@ impl Default for Settings {
             offset_x: 0,
             offset_y: 0,
             gmail_email: None,
+            calendar_url: None,
         }
     }
 }

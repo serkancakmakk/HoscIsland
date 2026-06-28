@@ -123,6 +123,22 @@ pub fn show(settings: Rc<RefCell<Settings>>) {
     corner_row.append(&cdd);
     root.append(&corner_row);
 
+    // Calendar (iCal URL).
+    root.append(&heading("Takvim"));
+    let cal_entry = gtk::Entry::new();
+    cal_entry.set_placeholder_text(Some("https://…/basic.ics"));
+    if let Some(u) = s.calendar_url.clone() {
+        cal_entry.set_text(&u);
+    }
+    cal_entry.connect_changed(clone!(@strong settings => move |e| {
+        let t = e.text().to_string();
+        let v = if t.trim().is_empty() { None } else { Some(t.trim().to_owned()) };
+        settings.borrow_mut().calendar_url = v;
+        settings.borrow().save();
+    }));
+    root.append(&cal_entry);
+    root.append(&gtk::Label::new(Some("Takvimin gizli iCal adresini yapıştır (boştaki kartta sıradaki etkinlik).")));
+
     // Gmail.
     root.append(&heading("Gmail"));
     if s.gmail_connected() {

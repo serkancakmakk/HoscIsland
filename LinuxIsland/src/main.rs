@@ -277,6 +277,12 @@ fn start_services(
         services::downloads::start(move |files| v.downloads.set(files));
     }
 
+    // Next calendar event (from an iCal feed URL, if configured).
+    if let Some(url) = settings.borrow().calendar_url.clone().filter(|u| !u.trim().is_empty()) {
+        let v = view.clone();
+        services::calendar::start(url, move |ev| v.set_calendar(ev));
+    }
+
     // Brightness/volume HUD.
     {
         let v = view.clone();

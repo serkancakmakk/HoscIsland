@@ -63,6 +63,9 @@ struct SettingsView: View {
                     }
                 }
 
+                sectionTitle("Takvim")
+                card { calendarContent }
+
                 sectionTitle("Gmail")
                 card { gmailContent }
             }
@@ -114,6 +117,27 @@ struct SettingsView: View {
             }
             .padding(.horizontal, 12).padding(.vertical, 10)
         }
+    }
+
+    // MARK: - Calendar
+
+    @ViewBuilder
+    private var calendarContent: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            HStack(spacing: 12) {
+                badge("calendar", .orange)
+                Text("Takvim (iCal URL)").font(.system(size: 13, weight: .medium))
+                Spacer()
+            }
+            TextField("https://…/basic.ics", text: Binding(
+                get: { settings.calendarURL ?? "" },
+                set: { settings.calendarURL = $0.trimmingCharacters(in: .whitespaces) }
+            ))
+            .textFieldStyle(.roundedBorder)
+            Text("Google/iCloud/Outlook'ta takvimin **gizli iCal adresini** yapıştır; boştaki kartta sıradaki etkinlik gösterilir.")
+                .font(.system(size: 9.5)).foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 12).padding(.vertical, 10)
     }
 
     // MARK: - Header / background

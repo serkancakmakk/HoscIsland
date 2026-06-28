@@ -8,6 +8,7 @@
 //!   notifications → org.freedesktop.Notifications monitor (replaces NC database)
 
 pub mod battery;
+pub mod calendar;
 pub mod clipboard;
 pub mod devices;
 pub mod devices_battery;
