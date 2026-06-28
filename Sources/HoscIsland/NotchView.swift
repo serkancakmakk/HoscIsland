@@ -318,15 +318,22 @@ struct NotchView: View {
     private var hasMusic: Bool { settings.showMusic && nowPlaying.track != nil }
     private var hasShelf: Bool { !shelf.items.isEmpty }
     private var showScreenshot: Bool { state.screenshot != nil && !isExpanded }
-    private var showBanner: Bool { settings.showNotifications && state.notification != nil && !isExpanded && !showScreenshot }
+    /// The banner shows when there's one to show; `notificationForced` lets a
+    /// Pomodoro-finished alert appear even if the banner setting is off.
+    private var showBanner: Bool {
+        (settings.showNotifications || state.notificationForced)
+            && state.notification != nil && !isExpanded && !showScreenshot
+    }
     private var showUnread: Bool { settings.showUnreadCount && unreadCount > 0 }
-    /// Live unread = notifications currently in Notification Center (drops as the
-    /// user reads them). The watcher reads the DB fresh so this no longer stalls.
+    /// Unread = new notifications since you last opened the island. Increments on
+    /// each arrival, resets to 0 when you open the notch (so it actually drops).
     private var unreadCount: Int { state.unreadCount }
     private var alwaysBattery: Bool { settings.batteryMode == .always }
-    /// Pill widens for music, a notification, an unread badge, a battery indicator, or a shelf.
+    /// Pill widens for music, a notification, an unread badge, a battery, a
+    /// running Pomodoro, or a shelf.
     private var isCompact: Bool {
-        hasMusic || state.notification != nil || showUnread || state.batteryFlash != nil || alwaysBattery || hasShelf
+        hasMusic || state.notification != nil || showUnread || state.batteryFlash != nil
+            || alwaysBattery || hasShelf || pomodoro.running
     }
 
     /// Pick one or more apps from /Applications and add them to the shelf.
@@ -504,9 +511,11 @@ struct NotchView: View {
                 compactArtwork
                     .overlay(alignment: .topTrailing) { if showUnread { cornerBadge } }
                 Spacer(minLength: notchWidth - 12)
-                // When battery is pinned "always", show it on the right instead of
-                // the equalizer; otherwise the music equalizer.
-                if alwaysBattery {
+                // Right wing: a running Pomodoro takes precedence (so its time
+                // stays visible), then a pinned battery, else the equalizer.
+                if pomodoro.running {
+                    pomodoroMini
+                } else if alwaysBattery {
                     miniBattery
                 } else {
                     EqualizerView(isPlaying: track.isPlaying, color: track.isPlaying ? .green : .gray)
@@ -517,6 +526,8 @@ struct NotchView: View {
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
             .gesture(trackSwipe)
+        } else if pomodoro.running {
+            pomodoroPill
         } else if alwaysBattery {
             batteryPill(percentage: state.batteryPercentage, charging: state.batteryPlugged)
         } else if hasShelf {
@@ -556,6 +567,32 @@ struct NotchView: View {
         .padding(.horizontal, 12)
         .frame(maxWidth: .infinity)
         .transition(.opacity.combined(with: .scale(scale: 0.85)))
+    }
+
+    /// Collapsed pill showing the running Pomodoro countdown (timer + time).
+    private var pomodoroPill: some View {
+        HStack(spacing: 0) {
+            Image(systemName: "timer")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 22)
+            Spacer(minLength: notchWidth - 12)
+            Text(pomodoro.label)
+                .font(.system(size: 12, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(.white)
+        }
+        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity)
+    }
+
+    /// Compact countdown for the right wing while music plays.
+    private var pomodoroMini: some View {
+        Text(pomodoro.label)
+            .font(.system(size: 11, weight: .semibold))
+            .monospacedDigit()
+            .foregroundStyle(.white)
+            .fixedSize()
     }
 
     /// Compact battery glyph for the right wing while music plays (fill conveys

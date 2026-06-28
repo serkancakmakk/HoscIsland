@@ -48,6 +48,7 @@ final class NotchController {
             || showUnread
             || state.batteryFlash != nil
             || Settings.shared.batteryMode == .always
+            || pomodoro.running
     }
 
     func install() {
@@ -78,6 +79,12 @@ final class NotchController {
     // MARK: - State observers
 
     private func observeStateChanges() {
+        // Opening the island = you've seen the notifications → clear the badge.
+        state.$isExpanded
+            .receive(on: RunLoop.main)
+            .sink { [weak self] expanded in if expanded { self?.state.unreadCount = 0 } }
+            .store(in: &cancellables)
+
         // Resize the interactive/drop region as the notch changes mode (collapsed
         // notch = small drop zone; expanded / preview / banner = full).
         Publishers.Merge3(
@@ -152,28 +159,24 @@ final class NotchController {
         notificationWatcher.onNewNotification = { [weak self] sender, message, appID in
             self?.flashNotification(sender: sender, message: message, appID: appID)
         }
-        // Live unread = notifications currently in Notification Center; drops as
-        // the user reads/dismisses them (the watcher now reads the DB fresh).
-        notificationWatcher.$unreadCount
-            .receive(on: RunLoop.main)
-            .sink { [weak self] count in self?.state.unreadCount = count }
-            .store(in: &cancellables)
         notificationWatcher.start()
     }
 
-    /// Record an incoming notification. The history + unread badge always update
-    /// (so the badge can't get stuck); the transient banner only shows when the
-    /// banner setting is on.
+    /// Record an incoming notification. History + unread badge always update;
+    /// the badge counts arrivals since you last opened the island, and resets to
+    /// 0 when you open it (see `observeStateChanges`) so it actually drops — the
+    /// macOS DB keeps read notifications around, so its raw count never falls.
     private func flashNotification(sender: String, message: String, appID: String) {
         let icon = appIcon(for: appID)
         state.whatsAppIcon = icon  // also the icon shown in the compact pill
 
-        // Rolling history (newest first, cap 12) — drives the unread badge/icon.
+        // Rolling history (newest first, cap 12) — drives the unread icon/list.
         state.notificationHistory.insert(
             NotchHistoryItem(icon: icon, sender: sender, message: message, date: Date()),
             at: 0
         )
         if state.notificationHistory.count > 12 { state.notificationHistory.removeLast() }
+        state.unreadCount += 1
 
         guard Settings.shared.showNotifications else { return }
         notificationClearItem?.cancel()
@@ -252,11 +255,16 @@ final class NotchController {
     }
 
     /// A short banner flash for a system event (reuses the notification banner).
-    private func flashEvent(symbol: String, title: String, message: String) {
+    /// `forced` shows it even when the banner setting is off.
+    private func flashEvent(symbol: String, title: String, message: String, forced: Bool = false) {
         notificationClearItem?.cancel()
         let icon = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
         state.notification = NotchNotification(icon: icon, sender: title, message: message)
-        let clear = DispatchWorkItem { [weak self] in self?.state.notification = nil }
+        state.notificationForced = forced
+        let clear = DispatchWorkItem { [weak self] in
+            self?.state.notification = nil
+            self?.state.notificationForced = false
+        }
         notificationClearItem = clear
         DispatchQueue.main.asyncAfter(deadline: .now() + 3.5, execute: clear)
     }
@@ -295,7 +303,8 @@ final class NotchController {
         NSSound(named: "Glass")?.play()
         flashEvent(symbol: "timer",
                    title: L("Pomodoro bitti", "Pomodoro done"),
-                   message: L("Süre doldu — mola ver", "Time's up — take a break"))
+                   message: L("Süre doldu — mola ver", "Time's up — take a break"),
+                   forced: true)
     }
 
     private func flashBattery() {
