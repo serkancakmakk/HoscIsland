@@ -68,11 +68,19 @@ final class NotificationWatcher: ObservableObject {
     /// (a long-lived read-only connection can hold a stale snapshot).
     private func check() {
         var db: OpaquePointer?
-        let uri = "file:\(dbPath)?mode=ro"
-        guard sqlite3_open_v2(uri, &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_URI, nil) == SQLITE_OK else {
-            setAccess(false)
-            if db != nil { sqlite3_close(db) }
-            return
+        // Open read-WRITE first: macOS's notification DB is in WAL mode, and a
+        // read-only handle can't touch the -shm index, so it serves a *stale*
+        // snapshot — the count then appears frozen and never drops as you read
+        // notifications. A read-write handle (the file is user-owned; we only
+        // SELECT) reads the live WAL. Fall back to read-only if that's denied.
+        if sqlite3_open_v2(dbPath, &db, SQLITE_OPEN_READWRITE, nil) != SQLITE_OK {
+            if db != nil { sqlite3_close(db); db = nil }
+            let uri = "file:\(dbPath)?mode=ro"
+            guard sqlite3_open_v2(uri, &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_URI, nil) == SQLITE_OK else {
+                setAccess(false)
+                if db != nil { sqlite3_close(db) }
+                return
+            }
         }
         defer { sqlite3_close(db) }
         sqlite3_busy_timeout(db, 300)

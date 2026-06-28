@@ -2,6 +2,16 @@
 
 Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Boring Notch tarzı).
 
+## [1.45.0] — 2026-06-28
+### Düzeltildi
+- **Okunmamış sayısı okuyunca düşmüyordu** 🔔 (macOS): Asıl kök neden — macOS'un
+  bildirim DB'si **WAL** modunda; salt-okunur açılan bağlantı `-shm` index'ine
+  erişemeyip **bayat snapshot** veriyordu, dolayısıyla sayım tazelenmiyordu.
+  Artık DB **read-write** açılıyor (dosya kullanıcıya ait; yalnız `SELECT`
+  yapıyoruz) → canlı WAL okunuyor. Rozet tekrar **Bildirim Merkezi'ndeki anlık
+  bildirim sayısına** bağlandı; mesajı okuyup kapatınca **düşüyor**. (Geçmiş
+  listesi çekmecede ayrıca duruyor.)
+
 ## [1.44.0] — 2026-06-28
 ### Düzeltildi
 - **Okunmamış rozeti güncellenmiyordu** 🔔 (macOS): Rozet, bildirim
