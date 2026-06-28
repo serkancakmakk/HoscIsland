@@ -16,7 +16,7 @@ impl ClipboardView {
         let container = gtk::Box::new(gtk::Orientation::Vertical, 4);
         container.add_css_class("controls");
 
-        let title = gtk::Label::new(Some("Pano"));
+        let title = gtk::Label::new(Some(crate::i18n::t("Pano", "Clipboard")));
         title.add_css_class("subtitle");
         title.set_xalign(0.0);
         container.append(&title);

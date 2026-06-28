@@ -19,13 +19,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let menu = NSMenu()
         menu.addItem(withTitle: "HoscIsland", action: nil, keyEquivalent: "")
         menu.addItem(.separator())
-        let settings = menu.addItem(withTitle: "Ayarlar…", action: #selector(openSettings), keyEquivalent: ",")
+        let settings = menu.addItem(withTitle: L("Ayarlar…", "Settings…"), action: #selector(openSettings), keyEquivalent: ",")
         settings.target = self
-        let fda = menu.addItem(withTitle: "Bildirimler için Tam Disk Erişimi…",
+        let fda = menu.addItem(withTitle: L("Bildirimler için Tam Disk Erişimi…", "Full Disk Access for notifications…"),
                                action: #selector(openFullDiskAccess), keyEquivalent: "")
         fda.target = self
         menu.addItem(.separator())
-        let quitItem = menu.addItem(withTitle: "Çıkış", action: #selector(quit), keyEquivalent: "q")
+        let quitItem = menu.addItem(withTitle: L("Çıkış", "Quit"), action: #selector(quit), keyEquivalent: "q")
         quitItem.target = self
         item.menu = menu
         statusItem = item

@@ -14,6 +14,30 @@ pub enum InteractionMode {
     Click,
 }
 
+/// UI language. `System` follows `$LANG`/`$LC_ALL`; otherwise forced.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Language {
+    System,
+    Turkish,
+    English,
+}
+
+impl Language {
+    pub fn is_english(self) -> bool {
+        match self {
+            Language::English => true,
+            Language::Turkish => false,
+            Language::System => {
+                let l = std::env::var("LC_ALL")
+                    .or_else(|_| std::env::var("LANG"))
+                    .unwrap_or_default();
+                !l.to_lowercase().starts_with("tr")
+            }
+        }
+    }
+}
+
 /// Corner rounding of the expanded island card.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -77,6 +101,7 @@ pub struct Settings {
     pub hover_sensitivity: HoverSensitivity,
     pub battery_mode: BatteryMode,
     pub corner_style: CornerStyle,
+    pub language: Language,
     pub show_music: bool,
     pub show_notifications: bool,
     pub show_volume: bool,
@@ -96,6 +121,7 @@ impl Default for Settings {
             hover_sensitivity: HoverSensitivity::Normal,
             battery_mode: BatteryMode::OnChange,
             corner_style: CornerStyle::Medium,
+            language: Language::System,
             show_music: true,
             show_notifications: true,
             show_volume: true,

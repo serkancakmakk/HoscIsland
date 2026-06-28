@@ -85,7 +85,7 @@ impl IslandView {
             }
             None => {
                 self.title.set_text("LinuxIsland");
-                self.artist.set_text("Çalan parça yok");
+                self.artist.set_text(crate::i18n::t("Çalan parça yok", "No track playing"));
                 self.play_btn.set_icon_name(play_icon(false));
                 self.cover.set_icon_name(Some("audio-x-generic-symbolic"));
                 set_active(&self.shuffle_btn, false);
@@ -280,7 +280,7 @@ pub fn build(
 
     let text_col = gtk::Box::new(gtk::Orientation::Vertical, 1);
     let title = label("LinuxIsland", "title");
-    let artist = label("Çalan parça yok", "subtitle");
+    let artist = label(crate::i18n::t("Çalan parça yok", "No track playing"), "subtitle");
     text_col.append(&title);
     text_col.append(&artist);
     text_col.set_hexpand(true);

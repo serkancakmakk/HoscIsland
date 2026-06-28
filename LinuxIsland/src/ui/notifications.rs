@@ -26,11 +26,11 @@ impl NotificationsView {
         container.add_css_class("controls");
 
         let header = gtk::Box::new(gtk::Orientation::Horizontal, 6);
-        let title = gtk::Label::new(Some("Bildirimler"));
+        let title = gtk::Label::new(Some(crate::i18n::t("Bildirimler", "Notifications")));
         title.add_css_class("subtitle");
         title.set_hexpand(true);
         title.set_xalign(0.0);
-        let clear = gtk::Button::with_label("Temizle");
+        let clear = gtk::Button::with_label(crate::i18n::t("Temizle", "Clear"));
         clear.add_css_class("flat");
         header.append(&title);
         header.append(&clear);

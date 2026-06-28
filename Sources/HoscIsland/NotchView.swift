@@ -421,13 +421,13 @@ struct NotchView: View {
                 .buttonStyle(.plain)
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Ekran görüntüsü")
+                    Text(L("Ekran görüntüsü", "Screenshot"))
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(.white.opacity(0.85))
                     HStack(spacing: 14) {
-                        shotAction("doc.on.doc", "Kopyala") { ScreenshotActions.copy(shot.url); dismissScreenshot() }
+                        shotAction("doc.on.doc", L("Kopyala", "Copy")) { ScreenshotActions.copy(shot.url); dismissScreenshot() }
                         shotAction("folder", "Finder") { ScreenshotActions.reveal(shot.url); dismissScreenshot() }
-                        shotAction("trash", "Sil", tint: .red) { ScreenshotActions.delete(shot.url); dismissScreenshot() }
+                        shotAction("trash", L("Sil", "Delete"), tint: .red) { ScreenshotActions.delete(shot.url); dismissScreenshot() }
                     }
                 }
                 Spacer(minLength: 0)
@@ -644,7 +644,7 @@ struct NotchView: View {
 
     private var windowsStrip: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Label("Pencereler", systemImage: "macwindow.on.rectangle")
+            Label(L("Pencereler", "Windows"), systemImage: "macwindow.on.rectangle")
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.6))
             ScrollView(.horizontal, showsIndicators: false) {
@@ -677,12 +677,12 @@ struct NotchView: View {
     private var clipboardStrip: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Label("Pano", systemImage: "doc.on.clipboard")
+                Label(L("Pano", "Clipboard"), systemImage: "doc.on.clipboard")
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.6))
                 Spacer()
                 Button { clipboard.clear() } label: {
-                    Text("Temizle").font(.system(size: 10))
+                    Text(L("Temizle", "Clear")).font(.system(size: 10))
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.white.opacity(0.5))
@@ -758,7 +758,7 @@ struct NotchView: View {
     /// Most recent files from ~/Downloads — click to open, drag out, reveal.
     private var downloadsStrip: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Label("İndirilenler", systemImage: "arrow.down.circle")
+            Label(L("İndirilenler", "Downloads"), systemImage: "arrow.down.circle")
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.6))
             ScrollView(.horizontal, showsIndicators: false) {
@@ -788,7 +788,7 @@ struct NotchView: View {
     /// Connected accessory batteries (AirPods / Magic Mouse / keyboard …).
     private var devicesStrip: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Label("Cihazlar", systemImage: "battery.100.bolt")
+            Label(L("Cihazlar", "Devices"), systemImage: "battery.100.bolt")
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.6))
             ScrollView(.horizontal, showsIndicators: false) {
@@ -820,12 +820,12 @@ struct NotchView: View {
     private var notificationsStrip: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Label("Bildirimler", systemImage: "bell.fill")
+                Label(L("Bildirimler", "Notifications"), systemImage: "bell.fill")
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.6))
                 Spacer()
                 Button { state.notificationHistory.removeAll() } label: {
-                    Text("Temizle").font(.system(size: 10))
+                    Text(L("Temizle", "Clear")).font(.system(size: 10))
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.white.opacity(0.5))
@@ -918,24 +918,24 @@ struct NotchView: View {
     private var shelfStrip: some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack {
-                Label("Raf", systemImage: "tray.full")
+                Label(L("Raf", "Shelf"), systemImage: "tray.full")
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.6))
                 Spacer()
                 Button { addApp() } label: {
-                    Label("Uygulama", systemImage: "plus.app")
+                    Label(L("Uygulama", "App"), systemImage: "plus.app")
                         .font(.system(size: 10))
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.white.opacity(0.6))
                 Button { shelf.clear() } label: {
-                    Text("Temizle").font(.system(size: 10))
+                    Text(L("Temizle", "Clear")).font(.system(size: 10))
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.white.opacity(0.5))
             }
             if shelf.items.isEmpty {
-                Text("Dosya sürükle ya da ＋ ile uygulama ekle")
+                Text(L("Dosya sürükle ya da ＋ ile uygulama ekle", "Drop a file or add an app with ＋"))
                     .font(.system(size: 10))
                     .foregroundStyle(.white.opacity(0.35))
                     .frame(maxWidth: .infinity, alignment: .center)

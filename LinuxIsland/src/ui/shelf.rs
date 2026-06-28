@@ -32,13 +32,13 @@ impl ShelfView {
 
         // Header: title + add-app + clear.
         let header = gtk::Box::new(gtk::Orientation::Horizontal, 6);
-        let title = gtk::Label::new(Some("Raf"));
+        let title = gtk::Label::new(Some(crate::i18n::t("Raf", "Shelf")));
         title.add_css_class("subtitle");
         title.set_hexpand(true);
         title.set_xalign(0.0);
-        let add_app = gtk::Button::with_label("＋ Uygulama");
+        let add_app = gtk::Button::with_label(crate::i18n::t("＋ Uygulama", "＋ App"));
         add_app.add_css_class("flat");
-        let clear = gtk::Button::with_label("Temizle");
+        let clear = gtk::Button::with_label(crate::i18n::t("Temizle", "Clear"));
         clear.add_css_class("flat");
         header.append(&title);
         header.append(&add_app);
@@ -48,7 +48,10 @@ impl ShelfView {
         let row = gtk::Box::new(gtk::Orientation::Horizontal, 8);
         container.append(&row);
 
-        let placeholder = gtk::Label::new(Some("Dosya sürükle ya da ＋ ile uygulama ekle"));
+        let placeholder = gtk::Label::new(Some(crate::i18n::t(
+            "Dosya sürükle ya da ＋ ile uygulama ekle",
+            "Drop a file or add an app with ＋",
+        )));
         placeholder.add_css_class("subtitle");
         container.append(&placeholder);
 
