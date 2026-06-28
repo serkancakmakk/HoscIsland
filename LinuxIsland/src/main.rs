@@ -258,7 +258,7 @@ fn start_services(
     // Weather (idle widget).
     {
         let v = view.clone();
-        services::weather::start(move |w| v.set_weather(w.code, &w.city, w.temp_c));
+        services::weather::start(move |w| v.set_weather(&w));
     }
 
     // Open-windows switcher.

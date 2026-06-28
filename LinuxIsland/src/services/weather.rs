@@ -9,6 +9,9 @@ use serde::Deserialize;
 
 pub struct Weather {
     pub temp_c: i32,
+    pub feels_like: i32,
+    pub hi: i32,
+    pub lo: i32,
     pub code: i32, // WMO weather code
     pub city: String,
 }
@@ -23,12 +26,20 @@ struct IpLoc {
 #[derive(Deserialize)]
 struct Meteo {
     current: Current,
+    daily: Option<Daily>,
 }
 
 #[derive(Deserialize)]
 struct Current {
     temperature_2m: f64,
     weather_code: i32,
+    apparent_temperature: Option<f64>,
+}
+
+#[derive(Deserialize)]
+struct Daily {
+    temperature_2m_max: Vec<f64>,
+    temperature_2m_min: Vec<f64>,
 }
 
 pub fn start<F: Fn(Weather) + 'static>(on_update: F) {
@@ -51,12 +62,21 @@ pub fn start<F: Fn(Weather) + 'static>(on_update: F) {
 fn fetch() -> Option<Weather> {
     let loc: IpLoc = get("https://ipapi.co/json/")?;
     let url = format!(
-        "https://api.open-meteo.com/v1/forecast?latitude={}&longitude={}&current=temperature_2m,weather_code",
+        "https://api.open-meteo.com/v1/forecast?latitude={}&longitude={}\
+         &current=temperature_2m,weather_code,apparent_temperature\
+         &daily=temperature_2m_max,temperature_2m_min&forecast_days=1&timezone=auto",
         loc.latitude, loc.longitude
     );
     let m: Meteo = get(&url)?;
+    let temp = m.current.temperature_2m;
+    let feels = m.current.apparent_temperature.unwrap_or(temp);
+    let hi = m.daily.as_ref().and_then(|d| d.temperature_2m_max.first().copied()).unwrap_or(temp);
+    let lo = m.daily.as_ref().and_then(|d| d.temperature_2m_min.first().copied()).unwrap_or(temp);
     Some(Weather {
-        temp_c: m.current.temperature_2m.round() as i32,
+        temp_c: temp.round() as i32,
+        feels_like: feels.round() as i32,
+        hi: hi.round() as i32,
+        lo: lo.round() as i32,
         code: m.current.weather_code,
         city: loc.city,
     })

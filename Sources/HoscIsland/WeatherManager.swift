@@ -3,6 +3,9 @@ import Combine
 
 struct Weather: Equatable {
     var tempC: Int
+    var feelsLike: Int
+    var hi: Int
+    var lo: Int
     var code: Int      // WMO weather code
     var city: String
 }
@@ -26,10 +29,14 @@ final class WeatherManager: ObservableObject {
             guard let self,
                   let loc = self.get(IPLocation.self, "https://ipapi.co/json/") else { return }
             let url = "https://api.open-meteo.com/v1/forecast?latitude=\(loc.latitude)"
-                + "&longitude=\(loc.longitude)&current=temperature_2m,weather_code"
+                + "&longitude=\(loc.longitude)&current=temperature_2m,weather_code,apparent_temperature"
+                + "&daily=temperature_2m_max,temperature_2m_min&forecast_days=1&timezone=auto"
             guard let m = self.get(MeteoResponse.self, url) else { return }
             let w = Weather(
                 tempC: Int(m.current.temperature_2m.rounded()),
+                feelsLike: Int((m.current.apparent_temperature ?? m.current.temperature_2m).rounded()),
+                hi: Int((m.daily?.temperature_2m_max.first ?? m.current.temperature_2m).rounded()),
+                lo: Int((m.daily?.temperature_2m_min.first ?? m.current.temperature_2m).rounded()),
                 code: m.current.weather_code,
                 city: loc.city
             )
@@ -53,8 +60,14 @@ final class WeatherManager: ObservableObject {
         struct Current: Decodable {
             let temperature_2m: Double
             let weather_code: Int
+            let apparent_temperature: Double?
+        }
+        struct Daily: Decodable {
+            let temperature_2m_max: [Double]
+            let temperature_2m_min: [Double]
         }
         let current: Current
+        let daily: Daily?
     }
 }
 

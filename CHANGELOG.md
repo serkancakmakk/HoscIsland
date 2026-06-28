@@ -2,6 +2,13 @@
 
 Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Boring Notch tarzı).
 
+## [1.40.0] — 2026-06-28
+### Değişti
+- **Hava durumu zenginleşti** 🌡️ (her iki platform): Şehir + sıcaklığın yanında
+  artık **hissedilen** ve **bugünkü en yüksek/en düşük** (↑/↓) gösteriliyor.
+  Open-Meteo'ya `apparent_temperature` + `daily` (max/min) eklendi; anahtarsız,
+  ek izin yok.
+
 ## [1.39.0] — 2026-06-28
 ### Eklendi
 - **TR/EN dil desteği** 🌍 (her iki platform): Ayarlardan **Sistem / Türkçe /
