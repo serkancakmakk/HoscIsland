@@ -213,6 +213,9 @@ pub fn build(
 
     let root = gtk::Box::new(gtk::Orientation::Vertical, 6);
     root.add_css_class("island");
+    if let Some(corner) = cfg.corner_style.css_class() {
+        root.add_css_class(corner);
+    }
     root.set_halign(gtk::Align::Center);
     root.set_valign(gtk::Align::Start);
 

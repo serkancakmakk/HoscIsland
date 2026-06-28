@@ -2,6 +2,13 @@
 
 Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Boring Notch tarzı).
 
+## [1.37.0] — 2026-06-28
+### Eklendi
+- **Görünüm — köşe yuvarlaklığı** 🎨 (her iki platform): Ayarlardan adanın köşe
+  yuvarlaklığı **Yumuşak / Orta / Keskin** seçilebiliyor. macOS'ta `NotchShape`
+  yarıçapı ayardan beslenir (anında), LinuxIsland'da island'a CSS sınıfı
+  (`corner-soft`/`corner-sharp`) uygulanır (yeniden başlatınca).
+
 ## [1.36.0] — 2026-06-27
 ### Eklendi
 - **Son indirilenler** 🕑 (her iki platform): `~/Downloads` klasöründeki **en
@@ -360,8 +367,8 @@ Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Borin
 - [x] 🌤️ **Hava durumu** — boştaki kartta şehir + sıcaklık + ikon. ✅ (1.29.0)
 
 ### 🎨 Özelleştirme & Davranış
-- [ ] 🎨 **Görünüm ayarları** — ada boyutu, köşe yarıçapı, renk/tema
-      (`NotchMetrics` parametreleştirme + `SettingsView` sekmesi).
+- [x] 🎨 **Görünüm ayarları** — köşe yuvarlaklığı (Yumuşak/Orta/Keskin). ✅ (1.37.0)
+      _(boyut/renk/tema sonraki adımda)_
 - [x] 👋 **Hover hassasiyeti** — açılma gecikmesi / kapanma süresi ayarı. ✅ (1.22.0)
 - [ ] 🖱️ **Etkileşim modu** — hover yerine "tıkla-aç" seçeneği.
 - [x] 🚀 **Açılışta otomatik başlat** — `SMAppService` (Login Item) + ayar anahtarı. ✅ (1.20.0)

@@ -45,6 +45,29 @@ enum HoverSensitivity: String, CaseIterable {
     }
 }
 
+/// Corner rounding of the expanded island card.
+enum CornerStyle: String, CaseIterable {
+    case soft     // very round
+    case medium   // default
+    case sharp    // tight corners
+
+    var label: String {
+        switch self {
+        case .soft: return "Yumuşak"
+        case .medium: return "Orta"
+        case .sharp: return "Keskin"
+        }
+    }
+    /// Bottom-corner radius of the expanded card.
+    var expandedRadius: CGFloat {
+        switch self {
+        case .soft: return 22
+        case .medium: return 14
+        case .sharp: return 6
+        }
+    }
+}
+
 /// How the battery indicator behaves.
 enum BatteryMode: String, CaseIterable {
     case off        // never show
@@ -72,6 +95,7 @@ final class Settings: ObservableObject {
     private let batteryKey = "batteryMode"
     private let interactionKey = "interactionMode"
     private let hoverKey = "hoverSensitivity"
+    private let cornerKey = "cornerStyle"
     private let movableKey = "movableNotch"
     private let offsetXKey = "notchOffsetX"
     private let offsetYKey = "notchOffsetY"
@@ -105,6 +129,11 @@ final class Settings: ObservableObject {
     /// Battery indicator behaviour.
     @Published var batteryMode: BatteryMode {
         didSet { defaults.set(batteryMode.rawValue, forKey: batteryKey) }
+    }
+
+    /// Corner rounding style of the expanded card.
+    @Published var cornerStyle: CornerStyle {
+        didSet { defaults.set(cornerStyle.rawValue, forKey: cornerKey) }
     }
 
     /// Whether the island can be dragged to a custom position.
@@ -176,6 +205,7 @@ final class Settings: ObservableObject {
         batteryMode = BatteryMode(rawValue: defaults.string(forKey: batteryKey) ?? "") ?? .onChange
         interactionMode = InteractionMode(rawValue: defaults.string(forKey: interactionKey) ?? "") ?? .hover
         hoverSensitivity = HoverSensitivity(rawValue: defaults.string(forKey: hoverKey) ?? "") ?? .normal
+        cornerStyle = CornerStyle(rawValue: defaults.string(forKey: cornerKey) ?? "") ?? .medium
         movableNotch = (defaults.object(forKey: movableKey) as? Bool) ?? false
         gmailEmail = defaults.string(forKey: gmailKey)
         launchAtLogin = LoginItem.isEnabled

@@ -14,6 +14,26 @@ pub enum InteractionMode {
     Click,
 }
 
+/// Corner rounding of the expanded island card.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum CornerStyle {
+    Soft,
+    Medium,
+    Sharp,
+}
+
+impl CornerStyle {
+    /// CSS class applied to the island root (Medium uses the default style).
+    pub fn css_class(self) -> Option<&'static str> {
+        match self {
+            CornerStyle::Soft => Some("corner-soft"),
+            CornerStyle::Medium => None,
+            CornerStyle::Sharp => Some("corner-sharp"),
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum BatteryMode {
@@ -56,6 +76,7 @@ pub struct Settings {
     pub interaction_mode: InteractionMode,
     pub hover_sensitivity: HoverSensitivity,
     pub battery_mode: BatteryMode,
+    pub corner_style: CornerStyle,
     pub show_music: bool,
     pub show_notifications: bool,
     pub show_volume: bool,
@@ -72,6 +93,7 @@ impl Default for Settings {
             interaction_mode: InteractionMode::Hover,
             hover_sensitivity: HoverSensitivity::Normal,
             battery_mode: BatteryMode::OnChange,
+            corner_style: CornerStyle::Medium,
             show_music: true,
             show_notifications: true,
             show_volume: true,
