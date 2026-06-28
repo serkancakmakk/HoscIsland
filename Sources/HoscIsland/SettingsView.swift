@@ -16,6 +16,10 @@ struct SettingsView: View {
                 card {
                     screenRow
                     insetDivider
+                    row("rectangle.roundedtop", .indigo, "Köşe yuvarlaklığı") {
+                        compactPicker($settings.cornerStyle, CornerStyle.allCases) { $0.label }
+                    }
+                    insetDivider
                     tappableRow("arrow.clockwise", .gray, "Ekranları yenile") {
                         screens = Settings.availableScreens()
                     }

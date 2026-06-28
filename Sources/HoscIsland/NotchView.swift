@@ -245,10 +245,10 @@ struct NotchView: View {
         ZStack {
             // The black "island" body. Flat top (on the bezel), rounded bottom —
             // exactly like the camera/notch housing.
-            NotchShape(bottomRadius: (isExpanded || showBanner || dropTargeted) ? NotchMetrics.cornerRadius : 10)
+            NotchShape(bottomRadius: (isExpanded || showBanner || dropTargeted) ? settings.cornerStyle.expandedRadius : 10)
                 .fill(Color.black)
                 .overlay(
-                    NotchShape(bottomRadius: NotchMetrics.cornerRadius)
+                    NotchShape(bottomRadius: settings.cornerStyle.expandedRadius)
                         .stroke(Color.accentColor, lineWidth: dropTargeted ? 2 : 0)
                 )
 

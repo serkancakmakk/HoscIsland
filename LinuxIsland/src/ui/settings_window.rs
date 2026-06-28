@@ -10,7 +10,7 @@ use std::rc::Rc;
 use gtk::glib::clone;
 use gtk::prelude::*;
 
-use crate::settings::{BatteryMode, HoverSensitivity, InteractionMode, Settings};
+use crate::settings::{BatteryMode, CornerStyle, HoverSensitivity, InteractionMode, Settings};
 
 pub fn show(settings: Rc<RefCell<Settings>>) {
     let win = gtk::Window::builder()
@@ -98,6 +98,30 @@ pub fn show(settings: Rc<RefCell<Settings>>) {
     }));
     battery_row.append(&dd);
     root.append(&battery_row);
+
+    // Corner-rounding dropdown.
+    let corner_row = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+    corner_row.append(&gtk::Label::new(Some("Köşe yuvarlaklığı")));
+    let cspacer = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+    cspacer.set_hexpand(true);
+    corner_row.append(&cspacer);
+    let cdd = gtk::DropDown::from_strings(&["Yumuşak", "Orta", "Keskin"]);
+    cdd.set_selected(match s.corner_style {
+        CornerStyle::Soft => 0,
+        CornerStyle::Medium => 1,
+        CornerStyle::Sharp => 2,
+    });
+    cdd.connect_selected_notify(clone!(@strong settings => move |dd| {
+        let v = match dd.selected() {
+            0 => CornerStyle::Soft,
+            2 => CornerStyle::Sharp,
+            _ => CornerStyle::Medium,
+        };
+        settings.borrow_mut().corner_style = v;
+        settings.borrow().save();
+    }));
+    corner_row.append(&cdd);
+    root.append(&corner_row);
 
     // Gmail.
     root.append(&heading("Gmail"));

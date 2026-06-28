@@ -26,6 +26,12 @@
   background: rgba(0, 0, 0, 0.96);
 }
 
+/* Corner-rounding presets (Görünüm → Köşe yuvarlaklığı). */
+.island.corner-soft { border-radius: 0 0 24px 24px; }
+.island.corner-soft.expanded { border-radius: 0 0 38px 38px; }
+.island.corner-sharp { border-radius: 0 0 8px 8px; }
+.island.corner-sharp.expanded { border-radius: 0 0 12px 12px; }
+
 .title {
   font-weight: 700;
   font-size: 13px;
