@@ -556,10 +556,9 @@ fn pomo_duration_popover(anchor: &gtk::Label, pomo: &Pomodoro, x: f64, y: f64) {
         pomo.set_minutes(spin.value() as u32);
         pop.popdown();
     }));
-    spin.connect_activate(clone!(@strong pomo, @strong pop => move |s| {
-        pomo.set_minutes(s.value() as u32);
-        pop.popdown();
-    }));
+    // Enter in the spin triggers the default (Apply) button.
+    apply.set_receives_default(true);
+    pop.set_default_widget(Some(&apply));
 
     pop.popup();
     spin.grab_focus();
