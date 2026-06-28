@@ -53,6 +53,9 @@ struct ScreenshotPreview: Equatable {
 final class NotchState: ObservableObject {
     @Published var isExpanded: Bool = false
     @Published var notification: NotchNotification?
+    /// When true, the current banner shows even if the notification-banner
+    /// setting is off (e.g. a Pomodoro-finished alert the user asked for).
+    @Published var notificationForced = false
     @Published var unreadCount: Int = 0
     @Published var batteryFlash: BatteryFlash?
     @Published var batteryPercentage: Int = 100

@@ -2,6 +2,22 @@
 
 Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Boring Notch tarzı).
 
+## [1.48.0] — 2026-06-28
+### Düzeltildi
+- **Okunmamış rozeti hep artıyordu, düşmüyordu** 🔔 (macOS): Asıl neden — macOS
+  bildirimleri **okununca bile** Bildirim Merkezi'nde durduğu için DB'nin
+  `COUNT(*)` değeri hiç düşmüyordu (sadece artıyordu). Rozet artık **adayı açana
+  kadar gelen yeni bildirimleri** sayıyor: her gelende +1, **adayı açınca 0'a
+  iner** (gördün → okundu). Doğru uygulama ikonunu da gösterir.
+### Eklendi
+- **Pomodoro sayacı köşede** ⏲️ (macOS): Sayaç **çalışırken kalan süre kapalı
+  notch'ta** görünür (müzik çalıyorsa sağ kanatta, yoksa kendi pill'inde) — açmana
+  gerek kalmadan göz ucuyla görürsün.
+- **Pomodoro bitiş uyarısı her zaman görünür** (macOS): Bitiş banner'ı artık
+  "Bildirim banner'ı" ayarı **kapalı olsa bile** çıkar (senin kurduğun sayaç).
+### Not
+- Pomodoro köşe sayacının Linux paritesi sıradaki adımda eklenecek.
+
 ## [1.47.0] — 2026-06-28
 ### Eklendi
 - **Pomodoro bitince uyarı** 🔔 (her iki platform): Sayaç sıfıra inince **çalma
