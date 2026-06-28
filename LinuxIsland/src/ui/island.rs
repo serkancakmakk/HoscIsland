@@ -293,6 +293,11 @@ pub fn build(
     let battery = label("", "battery");
     battery.set_visible(false);
     top.append(&battery);
+    // Always-visible mini Pomodoro countdown for the collapsed pill (hidden when
+    // not running / when the card is expanded). Mirrors the macOS corner timer.
+    let pomo_mini = label("", "pomo-mini");
+    pomo_mini.set_visible(false);
+    top.append(&pomo_mini);
     root.append(&top);
 
     // --- Synced lyric line ---
@@ -383,9 +388,13 @@ pub fn build(
     pomo_box.append(&pomo_reset);
     root.append(&pomo_box);
 
-    pomo.on_change(clone!(@strong pomo_label, @strong pomo_play => move |rem, running| {
-        pomo_label.set_text(&format!("{:02}:{:02}", rem / 60, rem % 60));
+    pomo.on_change(clone!(@strong pomo_label, @strong pomo_play, @strong pomo_mini, @strong state => move |rem, running| {
+        let text = format!("{:02}:{:02}", rem / 60, rem % 60);
+        pomo_label.set_text(&text);
         pomo_play.set_icon_name(play_icon(running));
+        // Corner countdown: only while running and collapsed.
+        pomo_mini.set_text(&format!("⏱ {text}"));
+        pomo_mini.set_visible(running && !state.borrow().expanded);
     }));
     pomo_play.connect_clicked(clone!(@strong pomo => move |_| pomo.toggle()));
     pomo_reset.connect_clicked(clone!(@strong pomo => move |_| pomo.reset()));
@@ -526,13 +535,15 @@ pub fn build(
     }));
 
     let handlers = Handlers {
-        on_expand: Box::new(clone!(@weak root, @strong state => move || {
+        on_expand: Box::new(clone!(@weak root, @strong state, @strong pomo_mini => move || {
             state.borrow_mut().expanded = true;
             root.add_css_class("expanded");
+            pomo_mini.set_visible(false);  // full timer is in the card when open
         })),
-        on_collapse: Box::new(clone!(@weak root, @strong state => move || {
+        on_collapse: Box::new(clone!(@weak root, @strong state, @strong pomo_mini, @strong pomo => move || {
             state.borrow_mut().expanded = false;
             root.remove_css_class("expanded");
+            pomo_mini.set_visible(pomo.running());
         })),
         on_next: Box::new(clone!(@strong controls => move || controls.next())),
         on_previous: Box::new(clone!(@strong controls => move || controls.previous())),

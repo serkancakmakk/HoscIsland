@@ -2,6 +2,12 @@
 
 Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Boring Notch tarzı).
 
+## [1.49.0] — 2026-06-28
+### Eklendi
+- **Pomodoro köşe sayacı — Linux paritesi** ⏲️ (LinuxIsland): Sayaç çalışırken
+  kalan süre **kapalı pill'de** (üst satırda `⏱ MM:SS`) görünür; ada açılınca
+  gizlenir (tam sayaç kartta). macOS 1.48.0 ile parite tamam.
+
 ## [1.48.0] — 2026-06-28
 ### Düzeltildi
 - **Okunmamış rozeti hep artıyordu, düşmüyordu** 🔔 (macOS): Asıl neden — macOS
@@ -16,7 +22,7 @@ Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Borin
 - **Pomodoro bitiş uyarısı her zaman görünür** (macOS): Bitiş banner'ı artık
   "Bildirim banner'ı" ayarı **kapalı olsa bile** çıkar (senin kurduğun sayaç).
 ### Not
-- Pomodoro köşe sayacının Linux paritesi sıradaki adımda eklenecek.
+- Pomodoro köşe sayacının Linux paritesi 1.49.0'da eklendi.
 
 ## [1.47.0] — 2026-06-28
 ### Eklendi
