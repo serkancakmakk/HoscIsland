@@ -12,58 +12,62 @@ struct SettingsView: View {
                 header
                     .padding(.bottom, 4)
 
-                sectionTitle("Görünüm")
+                sectionTitle(L("Görünüm", "Appearance"))
                 card {
                     screenRow
                     insetDivider
-                    row("rectangle.roundedtop", .indigo, "Köşe yuvarlaklığı") {
+                    row("character.bubble", .blue, L("Dil", "Language")) {
+                        compactPicker($settings.language, AppLanguage.allCases) { $0.label }
+                    }
+                    insetDivider
+                    row("rectangle.roundedtop", .indigo, L("Köşe yuvarlaklığı", "Corner rounding")) {
                         compactPicker($settings.cornerStyle, CornerStyle.allCases) { $0.label }
                     }
                     insetDivider
-                    tappableRow("arrow.clockwise", .gray, "Ekranları yenile") {
+                    tappableRow("arrow.clockwise", .gray, L("Ekranları yenile", "Refresh screens")) {
                         screens = Settings.availableScreens()
                     }
                 }
 
-                sectionTitle("Etkileşim")
+                sectionTitle(L("Etkileşim", "Interaction"))
                 card {
-                    row("hand.tap.fill", .purple, "Açılma şekli") {
+                    row("hand.tap.fill", .purple, L("Açılma şekli", "Open mode")) {
                         compactPicker($settings.interactionMode, InteractionMode.allCases) { $0.label }
                     }
                     insetDivider
-                    row("timer", .teal, "Hover hassasiyeti") {
+                    row("timer", .teal, L("Hover hassasiyeti", "Hover sensitivity")) {
                         compactPicker($settings.hoverSensitivity, HoverSensitivity.allCases) { $0.label }
                     }
                     insetDivider
-                    row("arrow.up.and.down.and.arrow.left.and.right", .orange, "Taşınabilir ada",
-                        subtitle: "Üst notch şeridinden tutup sürükle") {
+                    row("arrow.up.and.down.and.arrow.left.and.right", .orange, L("Taşınabilir ada", "Movable island"),
+                        subtitle: L("Üst notch şeridinden tutup sürükle", "Grab the top notch strip to drag")) {
                         Toggle("", isOn: $settings.movableNotch)
                             .labelsHidden().toggleStyle(.switch).controlSize(.small)
                     }
                     insetDivider
-                    tappableRow("arrow.counterclockwise", .gray, "Konumu sıfırla",
+                    tappableRow("arrow.counterclockwise", .gray, L("Konumu sıfırla", "Reset position"),
                                 enabled: settings.notchOffset != .zero) {
                         settings.notchOffset = .zero
                         settings.movableNotch = settings.movableNotch  // republish → re-center
                     }
                 }
 
-                sectionTitle("Özellikler")
+                sectionTitle(L("Özellikler", "Features"))
                 card {
-                    toggleRow("power", .green, "Açılışta başlat", $settings.launchAtLogin)
+                    toggleRow("power", .green, L("Açılışta başlat", "Launch at login"), $settings.launchAtLogin)
                     insetDivider
-                    toggleRow("music.note", .pink, "Müzik göstergesi", $settings.showMusic)
+                    toggleRow("music.note", .pink, L("Müzik göstergesi", "Music indicator"), $settings.showMusic)
                     insetDivider
-                    toggleRow("message.fill", .green, "Bildirim banner'ı", $settings.showNotifications)
+                    toggleRow("message.fill", .green, L("Bildirim banner'ı", "Notification banner"), $settings.showNotifications)
                     insetDivider
-                    toggleRow("bell.badge.fill", .red, "Okunmamış rozeti", $settings.showUnreadCount)
+                    toggleRow("bell.badge.fill", .red, L("Okunmamış rozeti", "Unread badge"), $settings.showUnreadCount)
                     insetDivider
-                    row("battery.100", .green, "Pil göstergesi") {
+                    row("battery.100", .green, L("Pil göstergesi", "Battery indicator")) {
                         compactPicker($settings.batteryMode, BatteryMode.allCases) { $0.label }
                     }
                 }
 
-                sectionTitle("Takvim")
+                sectionTitle(L("Takvim", "Calendar"))
                 card { calendarContent }
 
                 sectionTitle("Gmail")
@@ -84,8 +88,8 @@ struct SettingsView: View {
     @ViewBuilder
     private var gmailContent: some View {
         if settings.gmailConnected {
-            row("envelope.fill", .red, settings.gmailEmail ?? "", subtitle: "Bağlı · gelen okunmamışlar adada") {
-                Button("Kaldır") { settings.disconnectGmail() }
+            row("envelope.fill", .red, settings.gmailEmail ?? "", subtitle: L("Bağlı · gelen okunmamışlar adada", "Connected · unread inbox on the island")) {
+                Button(L("Kaldır", "Remove")) { settings.disconnectGmail() }
                     .buttonStyle(.borderless)
                     .font(.system(size: 11))
                     .foregroundStyle(.red)
@@ -94,25 +98,26 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 9) {
                 HStack(spacing: 12) {
                     badge("envelope.fill", .red)
-                    Text("Gmail bağla").font(.system(size: 13, weight: .medium))
+                    Text(L("Gmail bağla", "Connect Gmail")).font(.system(size: 13, weight: .medium))
                     Spacer()
                 }
                 TextField("ornek@gmail.com", text: $gmailEmailInput)
                     .textFieldStyle(.roundedBorder)
                     .textContentType(.username)
-                SecureField("Uygulama şifresi (16 hane)", text: $gmailPasswordInput)
+                SecureField(L("Uygulama şifresi (16 hane)", "App password (16 chars)"), text: $gmailPasswordInput)
                     .textFieldStyle(.roundedBorder)
                 HStack {
-                    Link("Uygulama şifresi al ↗", destination: URL(string: "https://myaccount.google.com/apppasswords")!)
+                    Link(L("Uygulama şifresi al ↗", "Get app password ↗"), destination: URL(string: "https://myaccount.google.com/apppasswords")!)
                         .font(.system(size: 10))
                     Spacer()
-                    Button("Bağla") {
+                    Button(L("Bağla", "Connect")) {
                         settings.connectGmail(email: gmailEmailInput, appPassword: gmailPasswordInput)
                         gmailPasswordInput = ""
                     }
                     .disabled(gmailEmailInput.isEmpty || gmailPasswordInput.isEmpty)
                 }
-                Text("Google hesabında 2 adımlı doğrulama açıkken Uygulama Şifresi oluştur; normal şifre çalışmaz.")
+                Text(L("Google hesabında 2 adımlı doğrulama açıkken Uygulama Şifresi oluştur; normal şifre çalışmaz.",
+                       "With 2-step verification on, create an App Password in your Google account; your normal password won't work."))
                     .font(.system(size: 9.5)).foregroundStyle(.secondary)
             }
             .padding(.horizontal, 12).padding(.vertical, 10)
@@ -126,7 +131,7 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 9) {
             HStack(spacing: 12) {
                 badge("calendar", .orange)
-                Text("Takvim (iCal URL)").font(.system(size: 13, weight: .medium))
+                Text(L("Takvim (iCal URL)", "Calendar (iCal URL)")).font(.system(size: 13, weight: .medium))
                 Spacer()
             }
             TextField("https://…/basic.ics", text: Binding(
@@ -134,7 +139,8 @@ struct SettingsView: View {
                 set: { settings.calendarURL = $0.trimmingCharacters(in: .whitespaces) }
             ))
             .textFieldStyle(.roundedBorder)
-            Text("Google/iCloud/Outlook'ta takvimin **gizli iCal adresini** yapıştır; boştaki kartta sıradaki etkinlik gösterilir.")
+            Text(L("Google/iCloud/Outlook'ta takvimin **gizli iCal adresini** yapıştır; boştaki kartta sıradaki etkinlik gösterilir.",
+                   "Paste your calendar's **private iCal address** from Google/iCloud/Outlook; the next event shows on the idle card."))
                 .font(.system(size: 9.5)).foregroundStyle(.secondary)
         }
         .padding(.horizontal, 12).padding(.vertical, 10)
@@ -152,7 +158,7 @@ struct SettingsView: View {
                 .shadow(color: .purple.opacity(0.35), radius: 6, y: 3)
             VStack(alignment: .leading, spacing: 2) {
                 Text("HoscIsland").font(.system(size: 19, weight: .bold))
-                Text("Dynamic Island ayarları")
+                Text(L("Dynamic Island ayarları", "Dynamic Island settings"))
                     .font(.system(size: 12)).foregroundStyle(.secondary)
             }
             Spacer()
@@ -252,9 +258,9 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var screenRow: some View {
-        row("macbook", .blue, "Ekran") {
+        row("macbook", .blue, L("Ekran", "Display")) {
             Picker("", selection: $settings.selectedDisplayID) {
-                Text("Otomatik").tag(CGDirectDisplayID?.none)
+                Text(L("Otomatik", "Automatic")).tag(CGDirectDisplayID?.none)
                 ForEach(screens, id: \.id) { entry in
                     Text(screenLabel(entry)).tag(CGDirectDisplayID?.some(entry.id))
                 }

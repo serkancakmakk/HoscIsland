@@ -11,6 +11,7 @@
 
 mod autostart;
 mod geometry;
+mod i18n;
 mod interaction;
 mod model;
 mod pomodoro;
@@ -59,6 +60,7 @@ fn load_css() {
 
 fn build_ui(app: &Application) {
     let settings = Rc::new(RefCell::new(Settings::load()));
+    i18n::init(settings.borrow().language.is_english());
     let state = Rc::new(RefCell::new(AppState::default()));
 
     let window = ApplicationWindow::builder()

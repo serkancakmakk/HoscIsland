@@ -2,6 +2,14 @@
 
 Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Boring Notch tarzı).
 
+## [1.39.0] — 2026-06-28
+### Eklendi
+- **TR/EN dil desteği** 🌍 (her iki platform): Ayarlardan **Sistem / Türkçe /
+  English** seçilebiliyor; ayarlar penceresi, menü, çekmece başlıkları, butonlar
+  ve idle etiketleri çevriliyor. macOS'ta anlık (`L(tr, en)` + `@Published`),
+  LinuxIsland'da başlangıçta çözülen global (`i18n::t`, yeniden başlatınca).
+  "Sistem" modu OS diline göre TR/EN seçer.
+
 ## [1.38.0] — 2026-06-28
 ### Eklendi
 - **Takvim — sıradaki etkinlik** 📅 (her iki platform): Ayarlara yapıştırılan
@@ -383,7 +391,7 @@ Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Borin
 - [x] 🚀 **Açılışta otomatik başlat** — `SMAppService` (Login Item) + ayar anahtarı. ✅ (1.20.0)
 
 ### 🛠️ Teknik & Dağıtım
-- [ ] 🌍 **İngilizce yerelleştirme** — TR/EN dil desteği.
+- [x] 🌍 **İngilizce yerelleştirme** — TR/EN dil desteği (Sistem/TR/EN). ✅ (1.39.0)
 - [ ] ⬆️ **Otomatik güncelleme** — Sparkle entegrasyonu.
 - [ ] 🔏 **İmzalama & notarization** — dağıtım için imzalı `.app`.
 - [ ] ⚙️ **Sekmeli Ayarlar penceresi** — Genel / Görünüm / Medya / Hakkında.

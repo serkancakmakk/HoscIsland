@@ -9,7 +9,7 @@ enum InteractionMode: String, CaseIterable {
     var label: String {
         switch self {
         case .hover: return "Hover"
-        case .click: return "Tıkla"
+        case .click: return L("Tıkla", "Click")
         }
     }
 }
@@ -22,9 +22,9 @@ enum HoverSensitivity: String, CaseIterable {
 
     var label: String {
         switch self {
-        case .fast: return "Anında"
+        case .fast: return L("Anında", "Instant")
         case .normal: return "Normal"
-        case .relaxed: return "Rahat"
+        case .relaxed: return L("Rahat", "Relaxed")
         }
     }
     /// Delay before opening on hover.
@@ -53,9 +53,9 @@ enum CornerStyle: String, CaseIterable {
 
     var label: String {
         switch self {
-        case .soft: return "Yumuşak"
-        case .medium: return "Orta"
-        case .sharp: return "Keskin"
+        case .soft: return L("Yumuşak", "Soft")
+        case .medium: return L("Orta", "Medium")
+        case .sharp: return L("Keskin", "Sharp")
         }
     }
     /// Bottom-corner radius of the expanded card.
@@ -76,9 +76,9 @@ enum BatteryMode: String, CaseIterable {
 
     var label: String {
         switch self {
-        case .off: return "Kapalı"
-        case .onChange: return "Değişince"
-        case .always: return "Her zaman"
+        case .off: return L("Kapalı", "Off")
+        case .onChange: return L("Değişince", "On change")
+        case .always: return L("Her zaman", "Always")
         }
     }
 }
@@ -96,6 +96,7 @@ final class Settings: ObservableObject {
     private let interactionKey = "interactionMode"
     private let hoverKey = "hoverSensitivity"
     private let cornerKey = "cornerStyle"
+    private let languageKey = "language"
     private let movableKey = "movableNotch"
     private let offsetXKey = "notchOffsetX"
     private let offsetYKey = "notchOffsetY"
@@ -135,6 +136,11 @@ final class Settings: ObservableObject {
     /// Corner rounding style of the expanded card.
     @Published var cornerStyle: CornerStyle {
         didSet { defaults.set(cornerStyle.rawValue, forKey: cornerKey) }
+    }
+
+    /// UI language (TR/EN/system).
+    @Published var language: AppLanguage {
+        didSet { defaults.set(language.rawValue, forKey: languageKey) }
     }
 
     /// Whether the island can be dragged to a custom position.
@@ -216,6 +222,7 @@ final class Settings: ObservableObject {
         interactionMode = InteractionMode(rawValue: defaults.string(forKey: interactionKey) ?? "") ?? .hover
         hoverSensitivity = HoverSensitivity(rawValue: defaults.string(forKey: hoverKey) ?? "") ?? .normal
         cornerStyle = CornerStyle(rawValue: defaults.string(forKey: cornerKey) ?? "") ?? .medium
+        language = AppLanguage(rawValue: defaults.string(forKey: languageKey) ?? "") ?? .system
         movableNotch = (defaults.object(forKey: movableKey) as? Bool) ?? false
         gmailEmail = defaults.string(forKey: gmailKey)
         calendarURL = defaults.string(forKey: calendarKey)

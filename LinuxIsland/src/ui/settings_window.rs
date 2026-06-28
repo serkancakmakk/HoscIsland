@@ -10,11 +10,12 @@ use std::rc::Rc;
 use gtk::glib::clone;
 use gtk::prelude::*;
 
-use crate::settings::{BatteryMode, CornerStyle, HoverSensitivity, InteractionMode, Settings};
+use crate::i18n::t;
+use crate::settings::{BatteryMode, CornerStyle, HoverSensitivity, InteractionMode, Language, Settings};
 
 pub fn show(settings: Rc<RefCell<Settings>>) {
     let win = gtk::Window::builder()
-        .title("LinuxIsland Ayarları")
+        .title(t("LinuxIsland Ayarları", "LinuxIsland Settings"))
         .default_width(360)
         .default_height(360)
         .build();
@@ -25,39 +26,39 @@ pub fn show(settings: Rc<RefCell<Settings>>) {
     root.set_margin_start(18);
     root.set_margin_end(18);
 
-    root.append(&heading("Özellikler"));
+    root.append(&heading(t("Özellikler", "Features")));
 
     let s = settings.borrow().clone();
 
-    root.append(&switch_row("Müzik göstergesi", s.show_music, clone!(@strong settings => move |on| {
+    root.append(&switch_row(t("Müzik göstergesi", "Music indicator"), s.show_music, clone!(@strong settings => move |on| {
         settings.borrow_mut().show_music = on; settings.borrow().save();
     })));
-    root.append(&switch_row("Bildirim banner'ı", s.show_notifications, clone!(@strong settings => move |on| {
+    root.append(&switch_row(t("Bildirim banner'ı", "Notification banner"), s.show_notifications, clone!(@strong settings => move |on| {
         settings.borrow_mut().show_notifications = on; settings.borrow().save();
     })));
-    root.append(&switch_row("Ses kaydırıcısı", s.show_volume, clone!(@strong settings => move |on| {
+    root.append(&switch_row(t("Ses kaydırıcısı", "Volume slider"), s.show_volume, clone!(@strong settings => move |on| {
         settings.borrow_mut().show_volume = on; settings.borrow().save();
     })));
-    root.append(&switch_row("Tıkla ile aç (kapalı = hover)", s.interaction_mode == InteractionMode::Click,
+    root.append(&switch_row(t("Tıkla ile aç (kapalı = hover)", "Click to open (off = hover)"), s.interaction_mode == InteractionMode::Click,
         clone!(@strong settings => move |on| {
             settings.borrow_mut().interaction_mode = if on { InteractionMode::Click } else { InteractionMode::Hover };
             settings.borrow().save();
         })));
-    root.append(&switch_row("Taşınabilir ada", s.movable, clone!(@strong settings => move |on| {
+    root.append(&switch_row(t("Taşınabilir ada", "Movable island"), s.movable, clone!(@strong settings => move |on| {
         settings.borrow_mut().movable = on; settings.borrow().save();
     })));
     // Autostart is backed by the .desktop file (its own source of truth).
-    root.append(&switch_row("Açılışta başlat", crate::autostart::is_enabled(), |on| {
+    root.append(&switch_row(t("Açılışta başlat", "Launch at login"), crate::autostart::is_enabled(), |on| {
         crate::autostart::set(on);
     }));
 
     // Hover sensitivity dropdown.
     let hover_row = gtk::Box::new(gtk::Orientation::Horizontal, 8);
-    hover_row.append(&gtk::Label::new(Some("Hover hassasiyeti")));
+    hover_row.append(&gtk::Label::new(Some(t("Hover hassasiyeti", "Hover sensitivity"))));
     let hspacer = gtk::Box::new(gtk::Orientation::Horizontal, 0);
     hspacer.set_hexpand(true);
     hover_row.append(&hspacer);
-    let hdd = gtk::DropDown::from_strings(&["Anında", "Normal", "Rahat"]);
+    let hdd = gtk::DropDown::from_strings(&[t("Anında", "Instant"), "Normal", t("Rahat", "Relaxed")]);
     hdd.set_selected(match s.hover_sensitivity {
         HoverSensitivity::Fast => 0,
         HoverSensitivity::Normal => 1,
@@ -77,11 +78,11 @@ pub fn show(settings: Rc<RefCell<Settings>>) {
 
     // Battery mode dropdown.
     let battery_row = gtk::Box::new(gtk::Orientation::Horizontal, 8);
-    battery_row.append(&gtk::Label::new(Some("Pil göstergesi")));
+    battery_row.append(&gtk::Label::new(Some(t("Pil göstergesi", "Battery indicator"))));
     let spacer = gtk::Box::new(gtk::Orientation::Horizontal, 0);
     spacer.set_hexpand(true);
     battery_row.append(&spacer);
-    let dd = gtk::DropDown::from_strings(&["Kapalı", "Değişince", "Her zaman"]);
+    let dd = gtk::DropDown::from_strings(&[t("Kapalı", "Off"), t("Değişince", "On change"), t("Her zaman", "Always")]);
     dd.set_selected(match s.battery_mode {
         BatteryMode::Off => 0,
         BatteryMode::OnChange => 1,
@@ -101,11 +102,11 @@ pub fn show(settings: Rc<RefCell<Settings>>) {
 
     // Corner-rounding dropdown.
     let corner_row = gtk::Box::new(gtk::Orientation::Horizontal, 8);
-    corner_row.append(&gtk::Label::new(Some("Köşe yuvarlaklığı")));
+    corner_row.append(&gtk::Label::new(Some(t("Köşe yuvarlaklığı", "Corner rounding"))));
     let cspacer = gtk::Box::new(gtk::Orientation::Horizontal, 0);
     cspacer.set_hexpand(true);
     corner_row.append(&cspacer);
-    let cdd = gtk::DropDown::from_strings(&["Yumuşak", "Orta", "Keskin"]);
+    let cdd = gtk::DropDown::from_strings(&[t("Yumuşak", "Soft"), t("Orta", "Medium"), t("Keskin", "Sharp")]);
     cdd.set_selected(match s.corner_style {
         CornerStyle::Soft => 0,
         CornerStyle::Medium => 1,
@@ -123,8 +124,32 @@ pub fn show(settings: Rc<RefCell<Settings>>) {
     corner_row.append(&cdd);
     root.append(&corner_row);
 
+    // Language dropdown (applies on restart).
+    let lang_row = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+    lang_row.append(&gtk::Label::new(Some(t("Dil", "Language"))));
+    let lspacer = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+    lspacer.set_hexpand(true);
+    lang_row.append(&lspacer);
+    let ldd = gtk::DropDown::from_strings(&[t("Sistem", "System"), "Türkçe", "English"]);
+    ldd.set_selected(match s.language {
+        Language::System => 0,
+        Language::Turkish => 1,
+        Language::English => 2,
+    });
+    ldd.connect_selected_notify(clone!(@strong settings => move |dd| {
+        let v = match dd.selected() {
+            1 => Language::Turkish,
+            2 => Language::English,
+            _ => Language::System,
+        };
+        settings.borrow_mut().language = v;
+        settings.borrow().save();
+    }));
+    lang_row.append(&ldd);
+    root.append(&lang_row);
+
     // Calendar (iCal URL).
-    root.append(&heading("Takvim"));
+    root.append(&heading(t("Takvim", "Calendar")));
     let cal_entry = gtk::Entry::new();
     cal_entry.set_placeholder_text(Some("https://…/basic.ics"));
     if let Some(u) = s.calendar_url.clone() {
@@ -137,16 +162,19 @@ pub fn show(settings: Rc<RefCell<Settings>>) {
         settings.borrow().save();
     }));
     root.append(&cal_entry);
-    root.append(&gtk::Label::new(Some("Takvimin gizli iCal adresini yapıştır (boştaki kartta sıradaki etkinlik).")));
+    root.append(&gtk::Label::new(Some(t(
+        "Takvimin gizli iCal adresini yapıştır (boştaki kartta sıradaki etkinlik).",
+        "Paste your calendar's private iCal address (next event on the idle card).",
+    ))));
 
     // Gmail.
     root.append(&heading("Gmail"));
     if s.gmail_connected() {
         let row = gtk::Box::new(gtk::Orientation::Horizontal, 8);
-        let lbl = gtk::Label::new(Some(&format!("Bağlı: {}", s.gmail_email.clone().unwrap_or_default())));
+        let lbl = gtk::Label::new(Some(&format!("{} {}", t("Bağlı:", "Connected:"), s.gmail_email.clone().unwrap_or_default())));
         lbl.set_hexpand(true);
         lbl.set_xalign(0.0);
-        let disconnect = gtk::Button::with_label("Kaldır");
+        let disconnect = gtk::Button::with_label(t("Kaldır", "Remove"));
         disconnect.connect_clicked(clone!(@strong settings => move |_| {
             settings.borrow_mut().disconnect_gmail();
         }));
@@ -157,9 +185,9 @@ pub fn show(settings: Rc<RefCell<Settings>>) {
         let email = gtk::Entry::new();
         email.set_placeholder_text(Some("ornek@gmail.com"));
         let pass = gtk::Entry::new();
-        pass.set_placeholder_text(Some("Uygulama şifresi (16 hane)"));
+        pass.set_placeholder_text(Some(t("Uygulama şifresi (16 hane)", "App password (16 chars)")));
         pass.set_visibility(false);
-        let connect = gtk::Button::with_label("Bağla");
+        let connect = gtk::Button::with_label(t("Bağla", "Connect"));
         connect.connect_clicked(clone!(@strong settings, @strong email, @strong pass => move |_| {
             let e = email.text().to_string();
             let p = pass.text().to_string();
@@ -173,7 +201,10 @@ pub fn show(settings: Rc<RefCell<Settings>>) {
         root.append(&connect);
     }
 
-    root.append(&gtk::Label::new(Some("Gmail için 2FA + Uygulama Şifresi gerekir. Ayarları değiştirince uygulamayı yeniden başlat.")));
+    root.append(&gtk::Label::new(Some(t(
+        "Gmail için 2FA + Uygulama Şifresi gerekir. Ayarları değiştirince uygulamayı yeniden başlat.",
+        "Gmail needs 2FA + an App Password. Restart the app after changing settings.",
+    ))));
 
     win.set_child(Some(&root));
     win.present();
