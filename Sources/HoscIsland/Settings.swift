@@ -100,6 +100,7 @@ final class Settings: ObservableObject {
     private let offsetXKey = "notchOffsetX"
     private let offsetYKey = "notchOffsetY"
     private let gmailKey = "gmailEmail"
+    private let calendarKey = "calendarURL"
 
     /// Whether the island opens on hover or on click.
     @Published var interactionMode: InteractionMode {
@@ -170,6 +171,15 @@ final class Settings: ObservableObject {
 
     var gmailConnected: Bool { gmailEmail != nil }
 
+    /// iCalendar (.ics) feed URL for the "next event" widget. `nil` when unset.
+    @Published var calendarURL: String? {
+        didSet {
+            if let u = calendarURL, !u.isEmpty { defaults.set(u, forKey: calendarKey) }
+            else { defaults.removeObject(forKey: calendarKey) }
+            NotificationCenter.default.post(name: .calendarURLChanged, object: nil)
+        }
+    }
+
     func connectGmail(email: String, appPassword: String) {
         let trimmed = email.trimmingCharacters(in: .whitespaces)
         Keychain.set(appPassword, account: trimmed)
@@ -208,6 +218,7 @@ final class Settings: ObservableObject {
         cornerStyle = CornerStyle(rawValue: defaults.string(forKey: cornerKey) ?? "") ?? .medium
         movableNotch = (defaults.object(forKey: movableKey) as? Bool) ?? false
         gmailEmail = defaults.string(forKey: gmailKey)
+        calendarURL = defaults.string(forKey: calendarKey)
         launchAtLogin = LoginItem.isEnabled
     }
 

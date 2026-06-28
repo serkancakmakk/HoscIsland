@@ -2,6 +2,15 @@
 
 Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Boring Notch tarzı).
 
+## [1.38.0] — 2026-06-28
+### Eklendi
+- **Takvim — sıradaki etkinlik** 📅 (her iki platform): Ayarlara yapıştırılan
+  **iCal (.ics) URL'sinden** (Google/iCloud/Outlook'un gizli takvim adresi)
+  sıradaki etkinlik boştaki kartta **başlık + zaman** (Bugün/Yarın/HH:MM) olarak
+  gösteriliyor. macOS'ta `URLSession`, LinuxIsland'da `ureq`; VEVENT ayrıştırma
+  + satır birleştirme, 15 dk'da bir yenilenir. **Takvim izni / entitlement
+  gerektirmez** (URL tabanlı).
+
 ## [1.37.0] — 2026-06-28
 ### Eklendi
 - **Görünüm — köşe yuvarlaklığı** 🎨 (her iki platform): Ayarlardan adanın köşe
@@ -361,7 +370,7 @@ Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Borin
 ### 🧩 Widget'lar (boştayken)
 - [x] 🗂️ **Açık sekmeler/pencereler göstergesi** — açık pencereleri listeleyip
       tıkla-geç. ✅ (1.30.0)
-- [ ] 📅 **Takvim / sıradaki etkinlik** — boştaki notch'ta sonraki toplantı.
+- [x] 📅 **Takvim / sıradaki etkinlik** — iCal URL'den boştaki kartta sıradaki etkinlik. ✅ (1.38.0)
 - [x] ⏲️ **Zamanlayıcı / Pomodoro** — boştaki kartta 25 dk sayaç. ✅ (1.21.0)
 - [x] 📋 **Pano geçmişi** — son kopyalananlara hızlı erişim. ✅ (1.25.0, macOS)
 - [x] 🌤️ **Hava durumu** — boştaki kartta şehir + sıcaklık + ikon. ✅ (1.29.0)

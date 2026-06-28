@@ -64,6 +64,8 @@ pub struct IslandView {
     weather_box: gtk::Box,
     weather_icon: gtk::Image,
     weather_label: gtk::Label,
+    calendar_box: gtk::Box,
+    calendar_label: gtk::Label,
     lyric_label: gtk::Label,
     lyric_lines: Rc<RefCell<Vec<(f64, String)>>>,
 }
@@ -172,6 +174,17 @@ impl IslandView {
         self.weather_box.set_visible(true);
     }
 
+    /// Next calendar event line ("Title · when"), or hide when there is none.
+    pub fn set_calendar(&self, event: Option<(String, String)>) {
+        match event {
+            Some((title, when)) => {
+                self.calendar_label.set_text(&format!("{title} · {when}"));
+                self.calendar_box.set_visible(true);
+            }
+            None => self.calendar_box.set_visible(false),
+        }
+    }
+
     pub fn set_lyrics(&self, lines: Vec<(f64, String)>) {
         *self.lyric_lines.borrow_mut() = lines;
         if self.lyric_lines.borrow().is_empty() {
@@ -233,6 +246,20 @@ pub fn build(
     root.append(&hud_box);
 
     // --- Weather row (idle widget) ---
+    // Idle: next calendar event (above weather).
+    let calendar_box = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+    calendar_box.add_css_class("controls");
+    calendar_box.set_halign(gtk::Align::Center);
+    calendar_box.set_visible(false);
+    let calendar_icon = gtk::Image::from_icon_name("x-office-calendar-symbolic");
+    let calendar_label = gtk::Label::new(None);
+    calendar_label.add_css_class("subtitle");
+    calendar_label.set_ellipsize(gtk::pango::EllipsizeMode::End);
+    calendar_label.set_max_width_chars(28);
+    calendar_box.append(&calendar_icon);
+    calendar_box.append(&calendar_label);
+    root.append(&calendar_box);
+
     let weather_box = gtk::Box::new(gtk::Orientation::Horizontal, 8);
     weather_box.add_css_class("controls");
     weather_box.set_halign(gtk::Align::Center);
@@ -415,6 +442,8 @@ pub fn build(
         hud_icon: hud_icon.clone(),
         hud_bar: hud_bar.clone(),
         weather_box: weather_box.clone(),
+        calendar_box: calendar_box.clone(),
+        calendar_label: calendar_label.clone(),
         weather_icon: weather_icon.clone(),
         weather_label: weather_label.clone(),
         lyric_label: lyric_label.clone(),

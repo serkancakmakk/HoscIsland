@@ -24,7 +24,7 @@ enum NotchMetrics {
     /// the island stays "stuck" open over invisible window area).
     /// Body (music or idle) + the fixed scrollable drawer below it.
     static func bodyHeight(topInset: CGFloat, hasMusic: Bool) -> CGFloat {
-        hasMusic ? expandedHeight : topInset + 150  // idle = weather + Pomodoro
+        hasMusic ? expandedHeight : topInset + 172  // idle = calendar + weather + Pomodoro
     }
 
     static func expandedVisibleHeight(topInset: CGFloat, hasMusic: Bool) -> CGFloat {
@@ -232,6 +232,7 @@ struct NotchView: View {
     @ObservedObject var lyrics: LyricsManager
     @ObservedObject var deviceBattery: DeviceBatteryManager
     @ObservedObject var downloads: DownloadsManager
+    @ObservedObject var calendar: CalendarManager
     @ObservedObject private var settings = Settings.shared
     @EnvironmentObject var state: NotchState
     let notchWidth: CGFloat
@@ -1035,6 +1036,21 @@ struct NotchView: View {
     /// Idle (no music) expanded card shows weather + a Pomodoro timer.
     private var idleContent: some View {
         VStack(spacing: 8) {
+            if let ev = calendar.nextEvent {
+                HStack(spacing: 6) {
+                    Image(systemName: "calendar")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white.opacity(0.7))
+                    Text(ev.title)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.85))
+                        .lineLimit(1)
+                    Text("· \(calendarWhen(ev))")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.white.opacity(0.5))
+                        .lineLimit(1)
+                }
+            }
             if let w = weather.weather {
                 HStack(spacing: 8) {
                     Image(systemName: weatherSymbol(w.code))
@@ -1060,5 +1076,24 @@ struct NotchView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// "14:30" today, "Yarın 09:00", or a short day+time for the next event.
+    private func calendarWhen(_ ev: CalEvent) -> String {
+        let cal = Foundation.Calendar.current
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "tr_TR")
+        if ev.allDay {
+            if cal.isDateInToday(ev.start) { return "Bugün" }
+            if cal.isDateInTomorrow(ev.start) { return "Yarın" }
+            f.dateFormat = "d MMM"
+            return f.string(from: ev.start)
+        }
+        f.dateFormat = "HH:mm"
+        let time = f.string(from: ev.start)
+        if cal.isDateInToday(ev.start) { return time }
+        if cal.isDateInTomorrow(ev.start) { return "Yarın \(time)" }
+        f.dateFormat = "d MMM HH:mm"
+        return f.string(from: ev.start)
     }
 }
