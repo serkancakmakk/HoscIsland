@@ -390,6 +390,15 @@ pub fn build(
     pomo_play.connect_clicked(clone!(@strong pomo => move |_| pomo.toggle()));
     pomo_reset.connect_clicked(clone!(@strong pomo => move |_| pomo.reset()));
 
+    // Tap the time to cycle the work length (15/25/45/60 dk).
+    pomo_label.set_tooltip_text(Some(crate::i18n::t(
+        "Süreyi değiştir (15/25/45/60 dk)",
+        "Change length (15/25/45/60 min)",
+    )));
+    let pomo_click = gtk::GestureClick::new();
+    pomo_click.connect_released(clone!(@strong pomo => move |_, _, _, _| pomo.cycle_duration()));
+    pomo_label.add_controller(pomo_click);
+
     // --- Secondary sections in one fixed-height scrollable drawer, so the card
     //     stays compact no matter how much content there is. ---
     let drawer_inner = gtk::Box::new(gtk::Orientation::Vertical, 10);

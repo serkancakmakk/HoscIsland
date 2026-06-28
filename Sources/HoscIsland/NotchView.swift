@@ -1094,6 +1094,8 @@ struct NotchView: View {
                 .font(.system(size: 34, weight: .semibold, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(.white)
+                .onTapGesture { pomodoro.cycleDuration() }
+                .help(L("Süreyi değiştir (15/25/45/60 dk)", "Change length (15/25/45/60 min)"))
             HStack(spacing: 18) {
                 controlButton(pomodoro.running ? "pause.fill" : "play.fill", size: 20) {
                     pomodoro.toggle()

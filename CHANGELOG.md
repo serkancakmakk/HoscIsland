@@ -2,6 +2,13 @@
 
 Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Boring Notch tarzı).
 
+## [1.43.0] — 2026-06-28
+### Eklendi
+- **Pomodoro süresi ayarlanabilir** ⏲️ (her iki platform): Sayacın **üstüne
+  tıklayınca** çalışma süresi önayarlar arasında döner — **15 / 25 / 45 / 60 dk**;
+  seçilince sayaç o süreye sıfırlanır. macOS'ta `onTapGesture`, LinuxIsland'da
+  etikete `GestureClick`.
+
 ## [1.42.0] — 2026-06-28
 ### Eklendi
 - **Hızlı paylaşım** 📤 (her iki platform): İndirilenler şeridindeki bir dosyaya
