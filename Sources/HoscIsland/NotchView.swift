@@ -310,9 +310,9 @@ struct NotchView: View {
     private var showScreenshot: Bool { state.screenshot != nil && !isExpanded }
     private var showBanner: Bool { settings.showNotifications && state.notification != nil && !isExpanded && !showScreenshot }
     private var showUnread: Bool { settings.showUnreadCount && unreadCount > 0 }
-    /// Unread count derives from the recent-notification history (reliably
-    /// updating), not the notification DB's total row count (which can stall).
-    private var unreadCount: Int { state.notificationHistory.count }
+    /// Live unread = notifications currently in Notification Center (drops as the
+    /// user reads them). The watcher reads the DB fresh so this no longer stalls.
+    private var unreadCount: Int { state.unreadCount }
     private var alwaysBattery: Bool { settings.batteryMode == .always }
     /// Pill widens for music, a notification, an unread badge, a battery indicator, or a shelf.
     private var isCompact: Bool {

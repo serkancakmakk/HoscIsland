@@ -40,7 +40,7 @@ final class NotchController {
     private var lastBatteryPercentage = 100
 
     private var targetScreen: NSScreen? { Settings.shared.resolvedScreen() }
-    private var showUnread: Bool { Settings.shared.showUnreadCount && !state.notificationHistory.isEmpty }
+    private var showUnread: Bool { Settings.shared.showUnreadCount && state.unreadCount > 0 }
     /// The collapsed pill widens when there's something to show in it.
     private var isCompact: Bool {
         (Settings.shared.showMusic && nowPlaying.track != nil)
@@ -151,6 +151,12 @@ final class NotchController {
         notificationWatcher.onNewNotification = { [weak self] sender, message, appID in
             self?.flashNotification(sender: sender, message: message, appID: appID)
         }
+        // Live unread = notifications currently in Notification Center; drops as
+        // the user reads/dismisses them (the watcher now reads the DB fresh).
+        notificationWatcher.$unreadCount
+            .receive(on: RunLoop.main)
+            .sink { [weak self] count in self?.state.unreadCount = count }
+            .store(in: &cancellables)
         notificationWatcher.start()
     }
 
