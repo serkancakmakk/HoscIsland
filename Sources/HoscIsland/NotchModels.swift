@@ -66,6 +66,29 @@ final class NotchState: ObservableObject {
     var whatsAppIcon: NSImage?
 }
 
+// MARK: - Key-capable panel
+
+/// The notch panel is borderless + non-activating, so it normally can't become
+/// the key window (no text input). We flip `keyEligible` on only while an inline
+/// field (e.g. the Pomodoro length) is being edited, so a normal notch click
+/// never steals keyboard focus from the user's frontmost app.
+final class KeyablePanel: NSPanel {
+    var keyEligible = false
+    override var canBecomeKey: Bool { keyEligible }
+}
+
+/// Exposes the hosting `NSWindow` to SwiftUI (so we can toggle key eligibility
+/// for inline editing).
+struct WindowAccessor: NSViewRepresentable {
+    var onResolve: (NSWindow?) -> Void
+    func makeNSView(context: Context) -> NSView {
+        let v = NSView()
+        DispatchQueue.main.async { onResolve(v.window) }
+        return v
+    }
+    func updateNSView(_ nsView: NSView, context: Context) {}
+}
+
 // MARK: - Passthrough hosting view
 
 /// Hosting view that is only "solid" (hit-testable, drop-accepting) within

@@ -58,6 +58,42 @@ impl WindowsView {
 
         let id = win.id.clone();
         btn.connect_clicked(clone!(@strong id => move |_| windows::focus(&id)));
+
+        // Right-click → focus / close menu (parity with the macOS context menu).
+        let menu = gtk::GestureClick::new();
+        menu.set_button(3);
+        menu.connect_pressed(clone!(@strong btn, @strong id => move |_, _, x, y| {
+            window_menu(&btn, &id, x, y);
+        }));
+        btn.add_controller(menu);
         btn
     }
+}
+
+/// Pop up a focus/close menu for a window at (x, y) relative to `anchor`.
+fn window_menu(anchor: &gtk::Button, id: &str, x: f64, y: f64) {
+    let id = id.to_owned();
+    let pop = gtk::Popover::new();
+    pop.set_parent(anchor);
+    pop.set_pointing_to(Some(&gtk::gdk::Rectangle::new(x as i32, y as i32, 1, 1)));
+    pop.set_has_arrow(false);
+    pop.connect_closed(|p| p.unparent());
+
+    let box_ = gtk::Box::new(gtk::Orientation::Vertical, 2);
+    let focus = gtk::Button::with_label(crate::i18n::t("Öne getir", "Bring to front"));
+    focus.add_css_class("flat");
+    focus.connect_clicked(clone!(@strong id, @strong pop => move |_| {
+        windows::focus(&id);
+        pop.popdown();
+    }));
+    let close = gtk::Button::with_label(crate::i18n::t("Pencereyi kapat", "Close window"));
+    close.add_css_class("flat");
+    close.connect_clicked(clone!(@strong id, @strong pop => move |_| {
+        windows::close(&id);
+        pop.popdown();
+    }));
+    box_.append(&focus);
+    box_.append(&close);
+    pop.set_child(Some(&box_));
+    pop.popup();
 }

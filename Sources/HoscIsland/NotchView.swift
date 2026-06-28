@@ -241,6 +241,10 @@ struct NotchView: View {
     @Binding var isExpanded: Bool
 
     @State private var dropTargeted = false
+    @State private var editingPomodoro = false
+    @State private var pomodoroInput = ""
+    @FocusState private var pomodoroFieldFocused: Bool
+    @State private var hostWindow: NSWindow?
 
     var body: some View {
         ZStack {
@@ -282,6 +286,12 @@ struct NotchView: View {
         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: state.hud)
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: dropTargeted)
         .animation(.spring(response: 0.35, dampingFraction: 0.7), value: state.hovering)
+        .background(WindowAccessor { hostWindow = $0 })
+        .onChange(of: isExpanded) { expanded in if !expanded { endPomodoroEdit() } }
+        .onChange(of: editingPomodoro) { editing in
+            (hostWindow as? KeyablePanel)?.keyEligible = editing
+            if editing { hostWindow?.makeKey() }
+        }
         .onDrop(of: [UTType.fileURL], isTargeted: $dropTargeted) { providers in
             handleDrop(providers)
         }
@@ -670,6 +680,12 @@ struct NotchView: View {
                         }
                         .buttonStyle(.plain)
                         .help(win.title.isEmpty ? win.app : "\(win.app) — \(win.title)")
+                        .contextMenu {
+                            Button(L("Öne getir", "Bring to front")) { windows.activate(win) }
+                            Button(L("Pencereyi kapat", "Close window"), role: .destructive) {
+                                windows.close(win)
+                            }
+                        }
                     }
                 }
             }
@@ -1093,12 +1109,32 @@ struct NotchView: View {
             Label("Pomodoro", systemImage: "timer")
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.5))
-            Text(pomodoro.label)
-                .font(.system(size: 34, weight: .semibold, design: .rounded))
-                .monospacedDigit()
-                .foregroundStyle(.white)
-                .onTapGesture { pomodoro.cycleDuration() }
-                .help(L("Süreyi değiştir (15/25/45/60 dk)", "Change length (15/25/45/60 min)"))
+            if editingPomodoro {
+                HStack(spacing: 5) {
+                    TextField("", text: $pomodoroInput)
+                        .textFieldStyle(.plain)
+                        .multilineTextAlignment(.trailing)
+                        .font(.system(size: 32, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .frame(width: 70)
+                        .focused($pomodoroFieldFocused)
+                        .onSubmit { applyPomodoroInput() }
+                    Text(L("dk", "min"))
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+            } else {
+                Text(pomodoro.label)
+                    .font(.system(size: 34, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(.white)
+                    .onTapGesture {
+                        pomodoroInput = "\(pomodoro.workMinutes)"
+                        editingPomodoro = true
+                        pomodoroFieldFocused = true
+                    }
+                    .help(L("Süreyi yaz (tıkla)", "Type a length (click)"))
+            }
             HStack(spacing: 18) {
                 controlButton(pomodoro.running ? "pause.fill" : "play.fill", size: 20) {
                     pomodoro.toggle()
@@ -1107,6 +1143,19 @@ struct NotchView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// Apply a typed Pomodoro length (minutes) and leave edit mode.
+    private func applyPomodoroInput() {
+        if let m = Int(pomodoroInput.trimmingCharacters(in: .whitespaces)) {
+            pomodoro.setMinutes(m)
+        }
+        endPomodoroEdit()
+    }
+
+    private func endPomodoroEdit() {
+        editingPomodoro = false
+        pomodoroFieldFocused = false
     }
 
     /// "14:30" today, "Yarın 09:00", or a short day+time for the next event.

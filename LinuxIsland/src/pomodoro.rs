@@ -38,12 +38,22 @@ impl Pomodoro {
     pub fn cycle_duration(&self) {
         let cur = self.work_minutes.get();
         let idx = PRESETS.iter().position(|&m| m == cur).unwrap_or(1);
-        let next = PRESETS[(idx + 1) % PRESETS.len()];
-        self.work_minutes.set(next);
+        self.set_minutes(PRESETS[(idx + 1) % PRESETS.len()]);
+    }
+
+    /// Set a custom work length (minutes, clamped 1…180) and reset to it.
+    pub fn set_minutes(&self, minutes: u32) {
+        let m = minutes.clamp(1, 180);
+        self.work_minutes.set(m);
         self.running.set(false);
         self.generation.set(self.generation.get().wrapping_add(1));
-        self.remaining.set(next * 60);
+        self.remaining.set(m * 60);
         self.emit();
+    }
+
+    /// Current work length in minutes.
+    pub fn minutes(&self) -> u32 {
+        self.work_minutes.get()
     }
 
     /// Register the UI updater: `(remaining_seconds, running)`.

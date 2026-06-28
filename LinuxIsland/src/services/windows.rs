@@ -55,6 +55,21 @@ pub fn focus(id: &str) {
     }
 }
 
+/// Close a window by compositor id.
+pub fn close(id: &str) {
+    match detect() {
+        Compositor::Hyprland => {
+            let _ = Command::new("hyprctl")
+                .args(["dispatch", "closewindow", &format!("address:{id}")])
+                .spawn();
+        }
+        Compositor::Sway => {
+            let _ = Command::new("swaymsg").arg(format!("[con_id={id}] kill")).spawn();
+        }
+        Compositor::None => {}
+    }
+}
+
 fn list() -> Vec<Win> {
     match detect() {
         Compositor::Hyprland => hyprland().unwrap_or_default(),
