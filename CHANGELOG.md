@@ -2,6 +2,16 @@
 
 Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Boring Notch tarzı).
 
+## [1.44.0] — 2026-06-28
+### Düzeltildi
+- **Okunmamış rozeti güncellenmiyordu** 🔔 (macOS): Rozet, bildirim
+  veritabanının `COUNT(*)` değerinden besleniyordu; macOS'un WAL'li DB'sini
+  salt-okunur okurken bu sayım bayatlayıp **takılı kalabiliyordu** (ikon da eski
+  WhatsApp ikonunda kalıyordu). Artık rozet **bildirim geçmişinden** besleniyor:
+  her yeni bildirimde güncellenir, doğru uygulama ikonunu gösterir, **Temizle**
+  ile sıfırlanır. Banner kapalı olsa bile geçmiş/rozet güncellenir (kayıt artık
+  banner ayarından bağımsız).
+
 ## [1.43.0] — 2026-06-28
 ### Eklendi
 - **Pomodoro süresi ayarlanabilir** ⏲️ (her iki platform): Sayacın **üstüne
