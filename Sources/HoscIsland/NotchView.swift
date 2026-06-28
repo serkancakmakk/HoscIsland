@@ -777,12 +777,33 @@ struct NotchView: View {
                         .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.08)))
                         .onTapGesture { NSWorkspace.shared.open(url) }
                         .onDrag { NSItemProvider(contentsOf: url) ?? NSItemProvider() }
+                        .contextMenu { fileShareMenu(url) }
                         .help(url.lastPathComponent)
                     }
                 }
             }
         }
         .frame(height: NotchMetrics.downloadsRowHeight - 14)
+    }
+
+    /// Share/quick actions for a file (used by the downloads strip's context menu).
+    @ViewBuilder
+    private func fileShareMenu(_ url: URL) -> some View {
+        Button("AirDrop") { share(url, .sendViaAirDrop) }
+        Button("Mail") { share(url, .composeEmail) }
+        Button(L("Mesajlar", "Messages")) { share(url, .composeMessage) }
+        Divider()
+        Button(L("Kopyala", "Copy")) {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.writeObjects([url as NSURL])
+        }
+        Button(L("Finder'da Göster", "Reveal in Finder")) {
+            NSWorkspace.shared.activateFileViewerSelecting([url])
+        }
+    }
+
+    private func share(_ url: URL, _ name: NSSharingService.Name) {
+        NSSharingService(named: name)?.perform(withItems: [url])
     }
 
     /// Connected accessory batteries (AirPods / Magic Mouse / keyboard …).

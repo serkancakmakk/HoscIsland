@@ -2,6 +2,13 @@
 
 Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Boring Notch tarzı).
 
+## [1.42.0] — 2026-06-28
+### Eklendi
+- **Hızlı paylaşım** 📤 (her iki platform): İndirilenler şeridindeki bir dosyaya
+  **sağ tıkla** → paylaş/eylem menüsü. macOS'ta native paylaşım (**AirDrop /
+  Mail / Mesajlar**) + Kopyala + Finder'da Göster; LinuxIsland'da **E-posta ile
+  gönder** (`xdg-email --attach`) + Yolu kopyala + Klasörü aç.
+
 ## [1.41.0] — 2026-06-28
 ### Değişti
 - **Sekmeli Ayarlar penceresi** ⚙️ (her iki platform): Ayarlar tek uzun listeden
@@ -384,9 +391,8 @@ Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Borin
 
 ### 📁 Dosya Rafı (Shelf)
 - [x] 📁 **Sürükle-bırak tepsi** — notch'a bırakılan dosyalar için raf. ✅ (1.11.0)
-- [ ] 📤 **Hızlı AirDrop / paylaşım** — raftaki dosyayı tek tıkla paylaşma.
-      ⏸️ _Ertelendi: parite zayıf — macOS'ta native share sheet var, Linux'ta
-      evrensel bir paylaşım arayüzü yok (en fazla `xdg-email`)._
+- [x] 📤 **Hızlı paylaşım** — dosyaya sağ tık → paylaş. macOS native paylaşım
+      (AirDrop/Mail/Mesajlar); Linux `xdg-email` + yolu kopyala + klasörü aç. ✅ (1.42.0)
 - [x] 🕑 **Son indirilenler** — çekmecede ~/Downloads hızlı erişim. ✅ (1.36.0)
 
 ### 🔔 Bildirimler

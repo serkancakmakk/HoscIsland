@@ -70,8 +70,58 @@ impl DownloadsView {
         }));
         chip.add_controller(source);
 
+        // Right-click → share menu (Linux counterpart of the macOS context menu).
+        let menu = gtk::GestureClick::new();
+        menu.set_button(3);
+        menu.connect_pressed(clone!(@strong path, @strong chip => move |_, _, x, y| {
+            share_popover(&chip, &path, x, y);
+        }));
+        chip.add_controller(menu);
+
         chip
     }
+}
+
+/// Pop up a small menu of file actions at (x, y) relative to `anchor`.
+fn share_popover(anchor: &gtk::Box, path: &Path, x: f64, y: f64) {
+    let path = path.to_path_buf();
+    let pop = gtk::Popover::new();
+    pop.set_parent(anchor);
+    pop.set_pointing_to(Some(&gtk::gdk::Rectangle::new(x as i32, y as i32, 1, 1)));
+    pop.set_has_arrow(false);
+    pop.connect_closed(|p| p.unparent());
+
+    let box_ = gtk::Box::new(gtk::Orientation::Vertical, 2);
+    let add = |label: &str| -> gtk::Button {
+        let b = gtk::Button::with_label(label);
+        b.add_css_class("flat");
+        b.set_halign(gtk::Align::Fill);
+        box_.append(&b);
+        b
+    };
+
+    let email = add(crate::i18n::t("E-posta ile gönder", "Send via email"));
+    email.connect_clicked(clone!(@strong path, @strong pop => move |_| {
+        let _ = Command::new("xdg-email").arg("--attach").arg(&path).spawn();
+        pop.popdown();
+    }));
+
+    let copy = add(crate::i18n::t("Yolu kopyala", "Copy path"));
+    copy.connect_clicked(clone!(@strong path, @strong pop => move |_| {
+        crate::services::clipboard::copy(&path.to_string_lossy());
+        pop.popdown();
+    }));
+
+    let folder = add(crate::i18n::t("Klasörü aç", "Open folder"));
+    folder.connect_clicked(clone!(@strong path, @strong pop => move |_| {
+        if let Some(dir) = path.parent() {
+            let _ = Command::new("xdg-open").arg(dir).spawn();
+        }
+        pop.popdown();
+    }));
+
+    pop.set_child(Some(&box_));
+    pop.popup();
 }
 
 fn display_name(path: &Path) -> String {
