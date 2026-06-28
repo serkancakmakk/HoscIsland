@@ -40,7 +40,7 @@ final class NotchController {
     private var lastBatteryPercentage = 100
 
     private var targetScreen: NSScreen? { Settings.shared.resolvedScreen() }
-    private var showUnread: Bool { Settings.shared.showUnreadCount && state.unreadCount > 0 }
+    private var showUnread: Bool { Settings.shared.showUnreadCount && !state.notificationHistory.isEmpty }
     /// The collapsed pill widens when there's something to show in it.
     private var isCompact: Bool {
         (Settings.shared.showMusic && nowPlaying.track != nil)
@@ -151,28 +151,26 @@ final class NotchController {
         notificationWatcher.onNewNotification = { [weak self] sender, message, appID in
             self?.flashNotification(sender: sender, message: message, appID: appID)
         }
-        notificationWatcher.$unreadCount
-            .receive(on: RunLoop.main)
-            .sink { [weak self] count in self?.state.unreadCount = count }
-            .store(in: &cancellables)
         notificationWatcher.start()
     }
 
-    /// Briefly show the incoming message as a banner (with the sending app's
-    /// icon), then clear it.
+    /// Record an incoming notification. The history + unread badge always update
+    /// (so the badge can't get stuck); the transient banner only shows when the
+    /// banner setting is on.
     private func flashNotification(sender: String, message: String, appID: String) {
-        guard Settings.shared.showNotifications else { return }
-        notificationClearItem?.cancel()
         let icon = appIcon(for: appID)
         state.whatsAppIcon = icon  // also the icon shown in the compact pill
-        state.notification = NotchNotification(icon: icon, sender: sender, message: message)
-        // Keep a short rolling history for the expanded card (newest first, cap 12).
+
+        // Rolling history (newest first, cap 12) — drives the unread badge/icon.
         state.notificationHistory.insert(
             NotchHistoryItem(icon: icon, sender: sender, message: message, date: Date()),
             at: 0
         )
         if state.notificationHistory.count > 12 { state.notificationHistory.removeLast() }
 
+        guard Settings.shared.showNotifications else { return }
+        notificationClearItem?.cancel()
+        state.notification = NotchNotification(icon: icon, sender: sender, message: message)
         let clear = DispatchWorkItem { [weak self] in self?.state.notification = nil }
         notificationClearItem = clear
         DispatchQueue.main.asyncAfter(deadline: .now() + 5.0, execute: clear)

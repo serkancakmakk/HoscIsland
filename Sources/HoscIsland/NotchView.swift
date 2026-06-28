@@ -309,7 +309,10 @@ struct NotchView: View {
     private var hasShelf: Bool { !shelf.items.isEmpty }
     private var showScreenshot: Bool { state.screenshot != nil && !isExpanded }
     private var showBanner: Bool { settings.showNotifications && state.notification != nil && !isExpanded && !showScreenshot }
-    private var showUnread: Bool { settings.showUnreadCount && state.unreadCount > 0 }
+    private var showUnread: Bool { settings.showUnreadCount && unreadCount > 0 }
+    /// Unread count derives from the recent-notification history (reliably
+    /// updating), not the notification DB's total row count (which can stall).
+    private var unreadCount: Int { state.notificationHistory.count }
     private var alwaysBattery: Bool { settings.batteryMode == .always }
     /// Pill widens for music, a notification, an unread badge, a battery indicator, or a shelf.
     private var isCompact: Bool {
@@ -521,7 +524,7 @@ struct NotchView: View {
             .frame(maxWidth: .infinity)
         } else if showUnread {
             HStack(spacing: 0) {
-                appIcon(state.whatsAppIcon, size: 22)
+                appIcon(state.notificationHistory.first?.icon ?? state.whatsAppIcon, size: 22)
                     .overlay(alignment: .topTrailing) { cornerBadge }
                 Spacer(minLength: notchWidth - 12)
                 countBadge(size: 11)
@@ -565,7 +568,7 @@ struct NotchView: View {
 
     /// Rounded count badge (e.g. "3", "9+").
     private func countBadge(size: CGFloat) -> some View {
-        Text(state.unreadCount > 9 ? "9+" : "\(state.unreadCount)")
+        Text(unreadCount > 9 ? "9+" : "\(unreadCount)")
             .font(.system(size: size, weight: .bold))
             .foregroundStyle(.white)
             .padding(.horizontal, size * 0.55)
@@ -575,7 +578,7 @@ struct NotchView: View {
 
     /// Small badge overlaid on an icon's corner.
     private var cornerBadge: some View {
-        Text(state.unreadCount > 9 ? "9+" : "\(state.unreadCount)")
+        Text(unreadCount > 9 ? "9+" : "\(unreadCount)")
             .font(.system(size: 8, weight: .bold))
             .foregroundStyle(.white)
             .padding(.horizontal, 3)
