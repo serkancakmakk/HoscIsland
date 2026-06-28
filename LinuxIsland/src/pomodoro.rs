@@ -9,12 +9,15 @@ use std::time::Duration;
 
 use gtk::glib;
 
-const WORK_SECONDS: u32 = 25 * 60;
+/// Selectable work lengths in minutes (tapping the timer cycles these).
+const PRESETS: [u32; 4] = [15, 25, 45, 60];
 
 #[derive(Clone)]
 pub struct Pomodoro {
     remaining: Rc<Cell<u32>>,
     running: Rc<Cell<bool>>,
+    /// Current work length in minutes (one of `PRESETS`).
+    work_minutes: Rc<Cell<u32>>,
     /// Generation token so a restarted tick supersedes the previous one.
     generation: Rc<Cell<u64>>,
     on_change: Rc<RefCell<Option<Box<dyn Fn(u32, bool)>>>>,
@@ -23,11 +26,24 @@ pub struct Pomodoro {
 impl Pomodoro {
     pub fn new() -> Self {
         Self {
-            remaining: Rc::new(Cell::new(WORK_SECONDS)),
+            remaining: Rc::new(Cell::new(25 * 60)),
             running: Rc::new(Cell::new(false)),
+            work_minutes: Rc::new(Cell::new(25)),
             generation: Rc::new(Cell::new(0)),
             on_change: Rc::new(RefCell::new(None)),
         }
+    }
+
+    /// Tap-to-change: jump to the next preset length and reset to it.
+    pub fn cycle_duration(&self) {
+        let cur = self.work_minutes.get();
+        let idx = PRESETS.iter().position(|&m| m == cur).unwrap_or(1);
+        let next = PRESETS[(idx + 1) % PRESETS.len()];
+        self.work_minutes.set(next);
+        self.running.set(false);
+        self.generation.set(self.generation.get().wrapping_add(1));
+        self.remaining.set(next * 60);
+        self.emit();
     }
 
     /// Register the UI updater: `(remaining_seconds, running)`.
@@ -72,7 +88,7 @@ impl Pomodoro {
     pub fn reset(&self) {
         self.running.set(false);
         self.generation.set(self.generation.get().wrapping_add(1));
-        self.remaining.set(WORK_SECONDS);
+        self.remaining.set(self.work_minutes.get() * 60);
         self.emit();
     }
 
