@@ -2,6 +2,17 @@
 
 Mac için kendi Dynamic Island / notch uygulaması (Alcove · NotchNook · Boring Notch tarzı).
 
+## [1.46.0] — 2026-06-28
+### Eklendi
+- **Pomodoro'ya süre yazma** ⌨️ (her iki platform): Sayaca tıklayınca artık
+  **istediğin dakikayı yazabiliyorsun** (1–180). macOS'ta notch içinde inline
+  alan (panel düzenleme sırasında klavyeyi alır), LinuxIsland'da tıklayınca
+  açılan **SpinButton** (yaz ya da +/−). Enter ile uygulanır.
+- **Açık pencereyi kapatma** 🪟 (her iki platform): Pencereler şeridindeki bir
+  pencereye **sağ tıkla** → *Öne getir* / *Pencereyi kapat*. macOS'ta Accessibility
+  (AX kapatma düğmesi — ilk kullanımda **Erişilebilirlik izni** ister),
+  LinuxIsland'da `hyprctl dispatch closewindow` / `swaymsg [con_id] kill`.
+
 ## [1.45.0] — 2026-06-28
 ### Düzeltildi
 - **Okunmamış sayısı okuyunca düşmüyordu** 🔔 (macOS): Asıl kök neden — macOS'un

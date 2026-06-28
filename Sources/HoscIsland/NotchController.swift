@@ -330,7 +330,7 @@ final class NotchController {
 
         hostingView = PassthroughHostingView(rootView: rootView)
 
-        let panel = NSPanel(
+        let panel = KeyablePanel(
             contentRect: .zero,
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,

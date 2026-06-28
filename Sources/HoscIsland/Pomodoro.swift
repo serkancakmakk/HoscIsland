@@ -24,7 +24,12 @@ final class PomodoroTimer: ObservableObject {
     /// Tap-to-change: jump to the next preset length and reset to it.
     func cycleDuration() {
         let idx = Self.presets.firstIndex(of: workMinutes) ?? 1
-        workMinutes = Self.presets[(idx + 1) % Self.presets.count]
+        setMinutes(Self.presets[(idx + 1) % Self.presets.count])
+    }
+
+    /// Set a custom work length (minutes, clamped 1…180) and reset to it.
+    func setMinutes(_ minutes: Int) {
+        workMinutes = max(1, min(180, minutes))
         pause()
         remaining = workDuration
     }

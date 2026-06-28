@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 import Combine
 
 /// One on-screen window of another app.
@@ -56,5 +57,35 @@ final class WindowsManager: ObservableObject {
 
     func icon(_ item: WinItem) -> NSImage? {
         NSRunningApplication(processIdentifier: item.pid)?.icon
+    }
+
+    /// Whether the Accessibility permission needed to close windows is granted.
+    var canControlWindows: Bool { AXIsProcessTrusted() }
+
+    /// Close a window by pressing its accessibility close button. Needs the
+    /// Accessibility permission; prompts for it the first time if missing.
+    func close(_ item: WinItem) {
+        guard AXIsProcessTrusted() else {
+            let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+            _ = AXIsProcessTrustedWithOptions(opts)
+            return
+        }
+        let appEl = AXUIElementCreateApplication(item.pid)
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(appEl, kAXWindowsAttribute as CFString, &value) == .success,
+              let windows = value as? [AXUIElement] else { return }
+
+        // Prefer the window whose title matches; fall back to the first.
+        let target = windows.first { window in
+            var titleRef: CFTypeRef?
+            AXUIElementCopyAttributeValue(window, kAXTitleAttribute as CFString, &titleRef)
+            return (titleRef as? String) == item.title
+        } ?? windows.first
+        guard let target else { return }
+
+        var buttonRef: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(target, kAXCloseButtonAttribute as CFString, &buttonRef) == .success,
+              let button = buttonRef else { return }
+        AXUIElementPerformAction(button as! AXUIElement, kAXPressAction as CFString)
     }
 }

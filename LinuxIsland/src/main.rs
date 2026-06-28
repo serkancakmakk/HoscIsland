@@ -75,7 +75,9 @@ fn build_ui(app: &Application) {
     window.set_namespace("linux-island");
     window.set_anchor(Edge::Top, true);
     window.set_exclusive_zone(0);
-    window.set_keyboard_mode(KeyboardMode::None);
+    // OnDemand lets inline fields (e.g. typing a Pomodoro length) receive the
+    // keyboard when focused, while still passing keys through otherwise.
+    window.set_keyboard_mode(KeyboardMode::OnDemand);
     window.add_css_class("island-window");
     // When movable is first enabled, seed a roughly-centered horizontal offset so
     // anchoring Left doesn't snap the island to the top-left corner.

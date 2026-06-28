@@ -390,13 +390,15 @@ pub fn build(
     pomo_play.connect_clicked(clone!(@strong pomo => move |_| pomo.toggle()));
     pomo_reset.connect_clicked(clone!(@strong pomo => move |_| pomo.reset()));
 
-    // Tap the time to cycle the work length (15/25/45/60 dk).
+    // Tap the time to type a custom work length (1–180 dk).
     pomo_label.set_tooltip_text(Some(crate::i18n::t(
-        "Süreyi değiştir (15/25/45/60 dk)",
-        "Change length (15/25/45/60 min)",
+        "Süreyi yaz (tıkla)",
+        "Type a length (click)",
     )));
     let pomo_click = gtk::GestureClick::new();
-    pomo_click.connect_released(clone!(@strong pomo => move |_, _, _, _| pomo.cycle_duration()));
+    pomo_click.connect_released(clone!(@strong pomo, @strong pomo_label => move |_, _, x, y| {
+        pomo_duration_popover(&pomo_label, &pomo, x, y);
+    }));
     pomo_label.add_controller(pomo_click);
 
     // --- Secondary sections in one fixed-height scrollable drawer, so the card
@@ -533,6 +535,34 @@ pub fn build(
 
 fn play_icon(playing: bool) -> &'static str {
     if playing { "media-playback-pause-symbolic" } else { "media-playback-start-symbolic" }
+}
+
+/// Popover with a SpinButton to type/step a custom Pomodoro length (minutes).
+fn pomo_duration_popover(anchor: &gtk::Label, pomo: &Pomodoro, x: f64, y: f64) {
+    let pop = gtk::Popover::new();
+    pop.set_parent(anchor);
+    pop.set_pointing_to(Some(&gtk::gdk::Rectangle::new(x as i32, y as i32, 1, 1)));
+    pop.connect_closed(|p| p.unparent());
+
+    let row = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+    let spin = gtk::SpinButton::with_range(1.0, 180.0, 1.0);
+    spin.set_value(pomo.minutes() as f64);
+    let apply = gtk::Button::with_label(crate::i18n::t("Ayarla", "Set"));
+    row.append(&spin);
+    row.append(&apply);
+    pop.set_child(Some(&row));
+
+    apply.connect_clicked(clone!(@strong pomo, @strong spin, @strong pop => move |_| {
+        pomo.set_minutes(spin.value() as u32);
+        pop.popdown();
+    }));
+    spin.connect_activate(clone!(@strong pomo, @strong pop => move |s| {
+        pomo.set_minutes(s.value() as u32);
+        pop.popdown();
+    }));
+
+    pop.popup();
+    spin.grab_focus();
 }
 
 fn set_active(btn: &gtk::Button, active: bool) {
