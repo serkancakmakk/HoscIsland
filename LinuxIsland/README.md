@@ -45,6 +45,38 @@ Now-playing/pil/bildirim servisleri henüz stub (bkz. [ROADMAP.md](ROADMAP.md)).
 > derlenemez (GTK4 + wlr-layer-shell yok). Aşağıdaki adımlar bir wlroots
 > kompozitörde (Sway, Hyprland, river) içindir.
 
+## Çalıştırma (hazır binary)
+
+En kolayı: **[GitHub Releases](https://github.com/serkancakmakk/HoscIsland/releases)**
+sayfasından `linux-island-linux-x86_64.tar.gz` indir.
+
+```bash
+tar -xzf linux-island-linux-x86_64.tar.gz
+cd linux-island
+./linux-island
+```
+
+Binary tek başına çalışır (CSS gömülü). Gerekli **çalışma zamanı** koşulları:
+
+- **GTK4 ≥ 4.12** ve **gtk4-layer-shell** kurulu olmalı:
+  ```bash
+  # Arch / Manjaro
+  sudo pacman -S gtk4 gtk4-layer-shell
+  # Fedora
+  sudo dnf install gtk4 gtk4-layer-shell
+  # Debian / Ubuntu (yeterince yeni GTK gerekir)
+  sudo apt install libgtk-4-1 libgtk4-layer-shell0
+  ```
+- Bir **wlroots kompozitör** oturumu (Sway / Hyprland / river / Wayfire).
+  **GNOME ve KDE'de layer-shell çalışmaz** (yukarıdaki kısıt notu).
+- Opsiyonel (özelliklere göre, yoksa o özellik sessizce atlanır): `wpctl`
+  (ses), `hyprctl`/`swaymsg` (pencere geçişi), `wl-clipboard` (pano),
+  `xdg-utils` (`xdg-open`/`xdg-email`), `libcanberra`/`pulseaudio-utils`
+  (Pomodoro bitiş sesi).
+
+> Binary `x86_64` Linux içindir. ARM ya da farklı libc için kaynaktan derlemek
+> gerekir (aşağı bkz.).
+
 ## Geliştirme
 
 Gerekenler: Rust (rustup), GTK4 ≥ 4.12 geliştirme paketleri ve
