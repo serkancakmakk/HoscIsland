@@ -20,6 +20,10 @@ final class CalendarManager: ObservableObject {
     var nextEvent: CalEvent? { events.first }
 
     private var timer: Timer?
+    /// Token for the block-based `.calendarURLChanged` observer. The block API
+    /// keeps the observer registered until it's explicitly removed, so we hold
+    /// the token and tear it down in `deinit` instead of leaking it.
+    private var urlObserver: NSObjectProtocol?
 
     func start() {
         refresh()
@@ -28,9 +32,16 @@ final class CalendarManager: ObservableObject {
             self?.refresh()
         }
         // React to the URL being set/changed in Settings.
-        NotificationCenter.default.addObserver(
+        urlObserver = NotificationCenter.default.addObserver(
             forName: .calendarURLChanged, object: nil, queue: .main
         ) { [weak self] _ in self?.refresh() }
+    }
+
+    deinit {
+        timer?.invalidate()
+        if let urlObserver {
+            NotificationCenter.default.removeObserver(urlObserver)
+        }
     }
 
     func refresh() {
