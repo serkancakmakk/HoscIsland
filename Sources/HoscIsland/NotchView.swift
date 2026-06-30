@@ -1113,11 +1113,11 @@ struct NotchView: View {
     /// Idle (no music) expanded card shows weather + a Pomodoro timer.
     private var idleContent: some View {
         VStack(spacing: 8) {
-            if let ev = calendar.nextEvent {
-                HStack(spacing: 6) {
-                    Image(systemName: "calendar")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.white.opacity(0.7))
+            HStack(spacing: 6) {
+                Image(systemName: "calendar")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.white.opacity(0.7))
+                if let ev = calendar.nextEvent {
                     Text(ev.title)
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(.white.opacity(0.85))
@@ -1125,6 +1125,12 @@ struct NotchView: View {
                     Text("· \(calendarWhen(ev))")
                         .font(.system(size: 10))
                         .foregroundStyle(.white.opacity(0.5))
+                        .lineLimit(1)
+                } else {
+                    // No feed configured (or nothing upcoming) → plain calendar: today's date.
+                    Text(todayLabel())
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.85))
                         .lineLimit(1)
                 }
             }
@@ -1193,6 +1199,14 @@ struct NotchView: View {
     private func endPomodoroEdit() {
         editingPomodoro = false
         pomodoroFieldFocused = false
+    }
+
+    /// Today's date ("Salı, 30 Haziran") shown when no calendar feed is set.
+    private func todayLabel() -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: L("tr_TR", "en_US"))
+        f.dateFormat = L("EEEE, d MMMM", "EEEE, MMMM d")
+        return f.string(from: Date())
     }
 
     /// "14:30" today, "Yarın 09:00", or a short day+time for the next event.
