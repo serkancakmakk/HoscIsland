@@ -24,7 +24,7 @@ enum NotchMetrics {
     /// the island stays "stuck" open over invisible window area).
     /// Body (music or idle) + the fixed scrollable drawer below it.
     static func bodyHeight(topInset: CGFloat, hasMusic: Bool) -> CGFloat {
-        hasMusic ? expandedHeight : topInset + 172  // idle = calendar + weather + Pomodoro
+        hasMusic ? expandedHeight : topInset + 296  // idle = calendar + weather + Pomodoro
     }
 
     static func expandedVisibleHeight(topInset: CGFloat, hasMusic: Bool) -> CGFloat {
@@ -241,6 +241,7 @@ struct NotchView: View {
     @Binding var isExpanded: Bool
 
     @State private var dropTargeted = false
+    @State private var selectedDay = Date()
     @State private var editingPomodoro = false
     @State private var pomodoroInput = ""
     @FocusState private var pomodoroFieldFocused: Bool
@@ -1110,30 +1111,11 @@ struct NotchView: View {
         .buttonStyle(.plain)
     }
 
-    /// Idle (no music) expanded card shows weather + a Pomodoro timer.
+    /// Idle (no music) expanded card shows a BoringNotch-style calendar +
+    /// weather + a Pomodoro timer.
     private var idleContent: some View {
         VStack(spacing: 8) {
-            HStack(spacing: 6) {
-                Image(systemName: "calendar")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.white.opacity(0.7))
-                if let ev = calendar.nextEvent {
-                    Text(ev.title)
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.85))
-                        .lineLimit(1)
-                    Text("· \(calendarWhen(ev))")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.white.opacity(0.5))
-                        .lineLimit(1)
-                } else {
-                    // No feed configured (or nothing upcoming) → plain calendar: today's date.
-                    Text(todayLabel())
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.85))
-                        .lineLimit(1)
-                }
-            }
+            calendarCard
             if let w = weather.weather {
                 HStack(spacing: 8) {
                     Image(systemName: weatherSymbol(w.code))
@@ -1201,30 +1183,186 @@ struct NotchView: View {
         pomodoroFieldFocused = false
     }
 
-    /// Today's date ("Salı, 30 Haziran") shown when no calendar feed is set.
-    private func todayLabel() -> String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: L("tr_TR", "en_US"))
-        f.dateFormat = L("EEEE, d MMMM", "EEEE, MMMM d")
-        return f.string(from: Date())
+    // MARK: - BoringNotch-style calendar
+
+    private var calLocale: Locale { Locale(identifier: L("tr_TR", "en_US")) }
+    private var cal: Foundation.Calendar {
+        var c = Foundation.Calendar.current
+        c.locale = calLocale
+        c.firstWeekday = 2   // Monday-first, like BoringNotch
+        return c
     }
 
-    /// "14:30" today, "Yarın 09:00", or a short day+time for the next event.
-    private func calendarWhen(_ ev: CalEvent) -> String {
-        let cal = Foundation.Calendar.current
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "tr_TR")
-        if ev.allDay {
-            if cal.isDateInToday(ev.start) { return "Bugün" }
-            if cal.isDateInTomorrow(ev.start) { return "Yarın" }
-            f.dateFormat = "d MMM"
-            return f.string(from: ev.start)
-        }
-        f.dateFormat = "HH:mm"
-        let time = f.string(from: ev.start)
-        if cal.isDateInToday(ev.start) { return time }
-        if cal.isDateInTomorrow(ev.start) { return "Yarın \(time)" }
-        f.dateFormat = "d MMM HH:mm"
-        return f.string(from: ev.start)
+    /// The seven days of the week that contains `selectedDay` (Mon…Sun).
+    private var weekDays: [Date] {
+        let start = cal.dateInterval(of: .weekOfYear, for: selectedDay)?.start ?? selectedDay
+        return (0..<7).compactMap { cal.date(byAdding: .day, value: $0, to: start) }
     }
+
+    /// A compact calendar: month title, a tappable week strip with event dots,
+    /// and the selected day's events — the BoringNotch layout.
+    private var calendarCard: some View {
+        VStack(spacing: 7) {
+            // Header: month + year, with a "today" shortcut when browsing away.
+            HStack {
+                Text(monthYearLabel(selectedDay))
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.9))
+                Spacer()
+                if !cal.isDateInToday(selectedDay) {
+                    Button {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            selectedDay = Date()
+                        }
+                    } label: {
+                        Text(L("Bugün", "Today"))
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(Color.accentColor)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            // Week strip — seven day cells, today/selected highlighted.
+            HStack(spacing: 0) {
+                ForEach(weekDays, id: \.self) { day in
+                    dayCell(day)
+                        .frame(maxWidth: .infinity)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                selectedDay = day
+                            }
+                        }
+                }
+            }
+
+            // Selected day's events (or a graceful empty state).
+            calendarEvents
+        }
+        .gesture(
+            DragGesture(minimumDistance: 24)
+                .onEnded { v in
+                    guard abs(v.translation.width) > abs(v.translation.height) else { return }
+                    let delta = v.translation.width < 0 ? 7 : -7
+                    if let d = cal.date(byAdding: .day, value: delta, to: selectedDay) {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+                            selectedDay = d
+                        }
+                    }
+                }
+        )
+    }
+
+    /// One day in the week strip: weekday header, day number in a pill, event dot.
+    private func dayCell(_ day: Date) -> some View {
+        let isSelected = cal.isDate(day, inSameDayAs: selectedDay)
+        let isToday = cal.isDateInToday(day)
+        let hasEvent = calendar.hasEvent(on: day, calendar: cal)
+        return VStack(spacing: 3) {
+            Text(weekdayShort(day))
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(.white.opacity(0.4))
+            Text("\(cal.component(.day, from: day))")
+                .font(.system(size: 13, weight: isToday ? .bold : .medium))
+                .foregroundStyle(
+                    isSelected ? .black : (isToday ? Color.accentColor : .white.opacity(0.85))
+                )
+                .frame(width: 26, height: 26)
+                .background(
+                    Circle().fill(isSelected ? Color.accentColor : Color.clear)
+                )
+                .overlay(
+                    Circle().stroke(Color.accentColor.opacity(isToday && !isSelected ? 0.6 : 0),
+                                    lineWidth: 1)
+                )
+            Circle()
+                .fill(hasEvent ? (isSelected ? Color.accentColor : Color.white.opacity(0.6))
+                               : Color.clear)
+                .frame(width: 4, height: 4)
+        }
+    }
+
+    /// The selected day's events as colored rows, or an empty placeholder.
+    @ViewBuilder
+    private var calendarEvents: some View {
+        let dayEvents = calendar.events(on: selectedDay, calendar: cal)
+        if dayEvents.isEmpty {
+            HStack(spacing: 6) {
+                Image(systemName: "calendar")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.white.opacity(0.4))
+                Text(emptyDayLabel())
+                    .font(.system(size: 10))
+                    .foregroundStyle(.white.opacity(0.45))
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, minHeight: 34)
+        } else {
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 4) {
+                    ForEach(Array(dayEvents.enumerated()), id: \.offset) { _, ev in
+                        eventRow(ev)
+                    }
+                }
+            }
+            .frame(maxHeight: 52)
+        }
+    }
+
+    /// A single event row: accent bar, title, and start time (or "Tüm gün").
+    private func eventRow(_ ev: CalEvent) -> some View {
+        HStack(spacing: 7) {
+            Capsule()
+                .fill(Color.accentColor)
+                .frame(width: 3, height: 14)
+            Text(ev.title)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.white.opacity(0.9))
+                .lineLimit(1)
+            Spacer(minLength: 4)
+            Text(ev.allDay ? L("Tüm gün", "All day") : eventTime(ev.start))
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.white.opacity(0.5))
+                .monospacedDigit()
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(RoundedRectangle(cornerRadius: 7, style: .continuous)
+            .fill(Color.white.opacity(0.06)))
+    }
+
+    /// "Haziran 2026" / "June 2026" for the strip header.
+    private func monthYearLabel(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.locale = calLocale
+        f.dateFormat = "LLLL yyyy"
+        return f.string(from: date).capitalized
+    }
+
+    /// Two-letter weekday header ("Pzt", "Mon").
+    private func weekdayShort(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.locale = calLocale
+        f.dateFormat = "EEEEE"   // single-letter; falls back nicely per-locale
+        return f.string(from: date).uppercased()
+    }
+
+    /// "14:30" start time for an event row.
+    private func eventTime(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.locale = calLocale
+        f.dateFormat = "HH:mm"
+        return f.string(from: date)
+    }
+
+    /// Empty-state line for a day with no events.
+    private func emptyDayLabel() -> String {
+        if cal.isDateInToday(selectedDay) { return L("Bugün etkinlik yok", "No events today") }
+        let f = DateFormatter()
+        f.locale = calLocale
+        f.dateFormat = L("d MMMM EEEE", "EEEE, MMMM d")
+        return f.string(from: selectedDay)
+    }
+
 }
