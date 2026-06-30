@@ -62,6 +62,10 @@ final class ScreenshotWatcher: ObservableObject {
 
         if let newest {
             seen.insert(newest.url.path)
+            // `baseline` already excludes anything older, so `seen` only guards
+            // against re-firing the current capture. Prune it once it grows so a
+            // long-running session can't accumulate paths without bound.
+            if seen.count > 64 { seen = [newest.url.path] }
             baseline = newest.date
             // The file may still be flushing to disk; a brief beat avoids a
             // partial-image read.
