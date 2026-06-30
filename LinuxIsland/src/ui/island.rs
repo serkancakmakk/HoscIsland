@@ -178,15 +178,15 @@ impl IslandView {
         self.weather_box.set_visible(true);
     }
 
-    /// Next calendar event line ("Title · when"), or hide when there is none.
+    /// Next calendar event line ("Title · when"); with no event (no feed
+    /// configured or nothing upcoming) fall back to a plain calendar: today's date.
     pub fn set_calendar(&self, event: Option<(String, String)>) {
-        match event {
-            Some((title, when)) => {
-                self.calendar_label.set_text(&format!("{title} · {when}"));
-                self.calendar_box.set_visible(true);
-            }
-            None => self.calendar_box.set_visible(false),
-        }
+        let text = match event {
+            Some((title, when)) => format!("{title} · {when}"),
+            None => today_label(),
+        };
+        self.calendar_label.set_text(&text);
+        self.calendar_box.set_visible(true);
     }
 
     pub fn set_lyrics(&self, lines: Vec<(f64, String)>) {
@@ -635,4 +635,22 @@ fn transport_button(icon: &str) -> gtk::Button {
     btn.add_css_class("flat");
     btn.add_css_class("transport");
     btn
+}
+
+/// Today's date ("Salı · 30 Haz") for the idle card when no calendar feed is set.
+/// Built manually so it doesn't depend on glib's strftime or the system locale.
+fn today_label() -> String {
+    const DAYS: [&str; 7] = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
+    const MONTHS: [&str; 12] = [
+        "Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara",
+    ];
+    match glib::DateTime::now_local() {
+        Ok(now) => {
+            // glib day_of_week(): 1 = Monday … 7 = Sunday.
+            let day = DAYS.get((now.day_of_week() - 1).clamp(0, 6) as usize).copied().unwrap_or("");
+            let month = MONTHS.get((now.month() - 1).clamp(0, 11) as usize).copied().unwrap_or("");
+            format!("{day} · {} {}", now.day_of_month(), month)
+        }
+        Err(_) => String::new(),
+    }
 }
