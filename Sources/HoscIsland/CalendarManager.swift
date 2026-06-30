@@ -13,7 +13,11 @@ struct CalEvent: Equatable {
 /// event for the idle card. Permission-free and works the same on Linux
 /// (`services/calendar.rs`).
 final class CalendarManager: ObservableObject {
-    @Published private(set) var nextEvent: CalEvent?
+    /// All upcoming events (today onward), sorted by start time. Drives the
+    /// BoringNotch-style week strip and day event list.
+    @Published private(set) var events: [CalEvent] = []
+    /// The soonest upcoming event — convenience for compact summaries.
+    var nextEvent: CalEvent? { events.first }
 
     private var timer: Timer?
 
@@ -32,21 +36,54 @@ final class CalendarManager: ObservableObject {
     func refresh() {
         guard let raw = Settings.shared.calendarURL,
               let url = URL(string: raw), !raw.isEmpty else {
-            if nextEvent != nil { nextEvent = nil }
+            if !events.isEmpty { events = [] }
             return
         }
         URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
             guard let data, let text = String(data: data, encoding: .utf8) else { return }
-            let next = CalendarManager.parseNext(text)
+            let upcoming = CalendarManager.parseUpcoming(text)
             DispatchQueue.main.async {
                 guard let self else { return }
-                if self.nextEvent != next { self.nextEvent = next }
+                if self.events != upcoming { self.events = upcoming }
             }
         }.resume()
     }
 
+    /// Events for a single day, sorted by start time.
+    func events(on day: Date, calendar cal: Calendar = .current) -> [CalEvent] {
+        events.filter { cal.isDate($0.start, inSameDayAs: day) }
+              .sorted { $0.start < $1.start }
+    }
+
+    /// True if there is at least one event on the given day.
+    func hasEvent(on day: Date, calendar cal: Calendar = .current) -> Bool {
+        events.contains { cal.isDate($0.start, inSameDayAs: day) }
+    }
+
+    /// Parse the ICS text and return all upcoming events (today onward), sorted.
+    static func parseUpcoming(_ ics: String, now: Date = Date()) -> [CalEvent] {
+        let cal = Calendar.current
+        return parseAll(ics)
+            .filter { ev in
+                ev.allDay ? cal.startOfDay(for: ev.start) >= cal.startOfDay(for: now)
+                          : ev.start >= cal.startOfDay(for: now)
+            }
+            .sorted { $0.start < $1.start }
+    }
+
     /// Parse the ICS text and return the soonest event starting from now.
     static func parseNext(_ ics: String, now: Date = Date()) -> CalEvent? {
+        let cal = Calendar.current
+        return parseAll(ics)
+            .filter { ev in
+                ev.allDay ? cal.startOfDay(for: ev.start) >= cal.startOfDay(for: now)
+                          : ev.start >= now
+            }
+            .min { $0.start < $1.start }
+    }
+
+    /// Parse every VEVENT in the ICS text into `CalEvent`s (unfiltered).
+    static func parseAll(_ ics: String) -> [CalEvent] {
         let lines = unfold(ics)
         var events: [CalEvent] = []
         var inEvent = false
@@ -72,15 +109,7 @@ final class CalendarManager: ObservableObject {
                 }
             }
         }
-
-        // All-day events count if they're today or later; timed events if in the future.
-        let cal = Calendar.current
         return events
-            .filter { ev in
-                ev.allDay ? cal.startOfDay(for: ev.start) >= cal.startOfDay(for: now)
-                          : ev.start >= now
-            }
-            .min { $0.start < $1.start }
     }
 
     // MARK: - Parsing helpers
